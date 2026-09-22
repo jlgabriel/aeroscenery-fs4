@@ -1,0 +1,409 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D723741C-263E-47FA-BDF5-0889B334E4F1}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>AeroScenery</RootNamespace>
+    <AssemblyName>AeroScenery</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;RELEASE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>aeroscenery.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'DebugSceneryEditor|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\DebugSceneryEditor\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AForge, Version=2.2.5.0, Culture=neutral, PublicKeyToken=c1db6ff4eaa06aeb, processorArchitecture=MSIL">
+      <HintPath>packages\AForge.2.2.5\lib\AForge.dll</HintPath>
+    </Reference>
+    <Reference Include="AForge.Imaging, Version=2.2.5.0, Culture=neutral, PublicKeyToken=ba8ddea9676ca48b, processorArchitecture=MSIL">
+      <HintPath>packages\AForge.Imaging.2.2.5\lib\AForge.Imaging.dll</HintPath>
+    </Reference>
+    <Reference Include="AForge.Math, Version=2.2.5.0, Culture=neutral, PublicKeyToken=abba2e25397ee8c9, processorArchitecture=MSIL">
+      <HintPath>packages\AForge.Math.2.2.5\lib\AForge.Math.dll</HintPath>
+    </Reference>
+    <Reference Include="DotSpatial.Projections, Version=1.9.0.0, Culture=neutral, PublicKeyToken=272632bddd08a38b, processorArchitecture=MSIL">
+      <HintPath>packages\DotSpatial.Projections.1.9\lib\net40-Client\DotSpatial.Projections.dll</HintPath>
+    </Reference>
+    <Reference Include="GMap.NET.Core, Version=1.9.2.0, Culture=neutral, PublicKeyToken=b85b9027b614afef, processorArchitecture=MSIL">
+      <HintPath>packages\GMap.NET.Windows.1.9.2\lib\net40\GMap.NET.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="GMap.NET.WindowsForms, Version=1.9.2.0, Culture=neutral, PublicKeyToken=b85b9027b614afef, processorArchitecture=MSIL">
+      <HintPath>packages\GMap.NET.Windows.1.9.2\lib\net40\GMap.NET.WindowsForms.dll</HintPath>
+    </Reference>
+    <Reference Include="GMap.NET.WindowsPresentation, Version=1.9.2.0, Culture=neutral, PublicKeyToken=b85b9027b614afef, processorArchitecture=MSIL">
+      <HintPath>packages\GMap.NET.Windows.1.9.2\lib\net40\GMap.NET.WindowsPresentation.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=2.0.17.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>packages\log4net.2.0.17\lib\net45\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="SmartFormat, Version=2.4.2.0, Culture=neutral, PublicKeyToken=568866805651201f, processorArchitecture=MSIL">
+      <HintPath>packages\SmartFormat.NET.2.4.2\lib\net45\SmartFormat.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.DirectoryServices" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <!-- WIC, for reading gigapixel stitched PNGs a band at a time instead of whole.
+         Framework assemblies, nothing to ship; WPF is already in the closure via
+         GMap.NET.WindowsPresentation. System.Xaml is needed because PresentationCore's
+         BitmapDecoder surface references IUriContext. See AFS2\WicScanlineSource.cs. -->
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AeroSceneryManager.cs" />
+    <Compile Include="AFS2\AFS2Grid.cs" />
+    <Compile Include="AFS2\AFS2GridSquare.cs" />
+    <Compile Include="AFS2\DownloadedGridSquareFinder.cs" />
+    <Compile Include="AFS2\AFSFileGenerator.cs" />
+    <Compile Include="AFS2\AFSFileGeneratorProgress.cs" />
+    <Compile Include="AFS2\AFSLevel.cs" />
+    <Compile Include="AFS2\AIDFile.cs" />
+    <Compile Include="AFS2\TMCFile.cs" />
+    <Compile Include="AFS2\Bc1Encoder.cs" />
+    <Compile Include="AFS2\TtcFile.cs" />
+    <Compile Include="AFS2\TtcMipChain.cs" />
+    <Compile Include="AFS2\TtcTileName.cs" />
+    <Compile Include="AFS2\TmFields.cs" />
+    <Compile Include="AFS2\TmcReader.cs" />
+    <Compile Include="AFS2\IScanlineSource.cs" />
+    <Compile Include="AFS2\WicScanlineSource.cs" />
+    <Compile Include="AFS2\AFS2World.cs" />
+    <Compile Include="AFS2\TtcToneCurve.cs" />
+    <Compile Include="AFS2\SourceImage.cs" />
+    <Compile Include="AFS2\Coastline.cs" />
+    <Compile Include="AFS2\CoastlineField.cs" />
+    <Compile Include="AFS2\WaterFixField.cs" />
+    <Compile Include="AFS2\TileSampler.cs" />
+    <Compile Include="AFS2\TtcTileWriter.cs" />
+    <Compile Include="AFS2\TtcConverter.cs" />
+    <Compile Include="AFS2\TtcConverterManager.cs" />
+    <Compile Include="Common\BetterWebClient.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Common\ComboBoxItem.cs" />
+    <Compile Include="Common\Direction.cs" />
+    <Compile Include="Common\DirectoryHelper.cs" />
+    <Compile Include="Common\GeoArea.cs" />
+    <Compile Include="Common\GeoCoordinate.cs" />
+    <Compile Include="Common\GeoCoordinatesHelper.cs" />
+    <Compile Include="Common\GMapProviderHelper.cs" />
+    <Compile Include="Common\ImageTile.cs" />
+    <Compile Include="Common\OrthophotoSourceSettings.cs" />
+    <Compile Include="Common\Point.cs" />
+    <Compile Include="Common\Settings.cs" />
+    <Compile Include="Common\StitchedImage.cs" />
+    <Compile Include="Common\TextBoxAppender.cs" />
+    <Compile Include="Controls\CustomeInputBox.cs" />
+    <Compile Include="Controls\CustomExceptionMessageBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Controls\CustomExceptionMessageBox.Designer.cs">
+      <DependentUpon>CustomExceptionMessageBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\CustomMessageBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Controls\CustomMessageBox.designer.cs">
+      <DependentUpon>CustomMessageBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SuperContextMenu\PoppedContainer.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\SuperContextMenu\PoppedContainer.Designer.cs">
+      <DependentUpon>PoppedContainer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SuperContextMenu\PopperContainer.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\SuperContextMenu\PopperContainer.Designer.cs">
+      <DependentUpon>PopperContainer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Data\ImageTileService.cs" />
+    <Compile Include="Data\RegistryService.cs" />
+    <Compile Include="Data\SettingsService.cs" />
+    <Compile Include="Download\DownloadManager.cs" />
+    <Compile Include="Download\DownloadThreadProgress.cs" />
+    <Compile Include="FileManagement\FileManager.cs" />
+    <Compile Include="FileManagement\SceneryInstaller.cs" />
+    <Compile Include="ImageProcessing\ImageProcessingFilters.cs" />
+    <Compile Include="ImageProcessing\ImageProcessingSettings.cs" />
+    <Compile Include="ImageProcessing\TileStitcher.cs" />
+    <Compile Include="ImageProcessing\TileStitcherProgress.cs" />
+    <Compile Include="OrthophotoSources\Global\MapboxOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Global\ArcGISOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Global\BingOrthophotoTileHelper.cs" />
+    <Compile Include="OrthophotoSources\GenericOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\GenericOrthophotoTileHelper.cs" />
+    <Compile Include="OrthophotoSources\Global\GoogleOrthophotoTileHelper.cs" />
+    <Compile Include="OrthophotoSources\Global\GoogleOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Global\HereWeGoOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\IOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Japan\GSIOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\NewZealand\LinzOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Norway\GuleSiderOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Norway\NorgeBilderOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Spain\IDEIBOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Spain\IGNOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Sweden\HittaOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Sweden\LantmaterietOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\Switzerland\GeoportalOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\TiledWebMapType.cs" />
+    <Compile Include="OrthophotoSources\UnitedStates\USGSOrthophotoSource.cs" />
+    <Compile Include="Resources\AeroSceneryImages.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>AeroSceneryImages.resx</DependentUpon>
+    </Compile>
+    <Compile Include="UI\FileOperationProgressForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\FileOperationProgressForm.Designer.cs">
+      <DependentUpon>FileOperationProgressForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\DeleteSquareOptionsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\DeleteSquareOptionsForm.Designer.cs">
+      <DependentUpon>DeleteSquareOptionsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\DownloadFailedForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\DownloadFailedForm.Designer.cs">
+      <DependentUpon>DownloadFailedForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\DownloadThreadProgressControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\DownloadThreadProgressControl.Designer.cs">
+      <DependentUpon>DownloadThreadProgressControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\GetAeroflySDKForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\GetAeroflySDKForm.Designer.cs">
+      <DependentUpon>GetAeroflySDKForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\CoastlineEditor.cs" />
+    <Compile Include="UI\GMapControlManager.cs" />
+    <Compile Include="UI\GridSquareDisplayType.cs" />
+    <Compile Include="UI\GridSquareViewModel.cs" />
+    <Compile Include="UI\HelpForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\HelpForm.Designer.cs">
+      <DependentUpon>HelpForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ImageComboBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="UI\ImageComboItem.cs" />
+    <Compile Include="UI\ImageProcessingPreviewForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\ImageProcessingPreviewForm.Designer.cs">
+      <DependentUpon>ImageProcessingPreviewForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="OrthophotoSources\Global\BingOrthophotoSource.cs" />
+    <Compile Include="OrthophotoSources\OrthophotoSource.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UI\SettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\SettingsForm.Designer.cs">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="Controls\CustomExceptionMessageBox.resx">
+      <DependentUpon>CustomExceptionMessageBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\CustomMessageBox.resx">
+      <DependentUpon>CustomMessageBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\SuperContextMenu\PoppedContainer.resx">
+      <DependentUpon>PoppedContainer.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\AeroSceneryImages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>AeroSceneryImages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\FileOperationProgressForm.resx">
+      <DependentUpon>FileOperationProgressForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\DeleteSquareOptionsForm.resx">
+      <DependentUpon>DeleteSquareOptionsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\DownloadThreadProgressControl.resx">
+      <DependentUpon>DownloadThreadProgressControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\ImageProcessingPreviewForm.resx">
+      <DependentUpon>ImageProcessingPreviewForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <EmbeddedResource Include="UI\SettingsForm.resx">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="aeroscenery.ico" />
+    <None Include="Resources\airplane_icon.png" />
+    <Content Include="Resources\arrow_down_active.png" />
+    <None Include="Resources\ch.png" />
+    <None Include="Resources\es.png" />
+    <None Include="Resources\jp.png" />
+    <None Include="Resources\no.png" />
+    <None Include="Resources\nz.png" />
+    <Content Include="Resources\picture_edit.png" />
+    <Content Include="Resources\SampleImages\rural_arid.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\SampleImages\rural_green.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\SampleImages\semi_rural_arid.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\SampleImages\semi_rural_green.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\SampleImages\urban1.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\SampleImages\urban2.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\SampleImages\urban3.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Resources\US.bmp" />
+    <None Include="Resources\se.png" />
+    <None Include="Resources\us.png" />
+    <None Include="Resources\world_icon.png" />
+    <None Include="Resources\world_map.png" />
+    <None Include="Resources\socklight.png" />
+    <None Include="Resources\windsock.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\arrow_down.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.5.2 %28x86 und x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+  </Target>
+</Project>

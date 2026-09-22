@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7C2A1F53-6D48-4B0E-9E31-2A0C4F8B15D7}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AeroSceneryConvert</RootNamespace>
+    <AssemblyName>AeroSceneryConvert</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <!-- x64 is not cosmetic: one source band plus a level's worth of tile buffers goes past the
+         2 GB a 32-bit process can address on a large square. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <!-- WIC, through WPF's BitmapDecoder. This is the whole reason there is no GPU and no desktop
+         session in the dependency list. -->
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Linked, not copied. The app and this exe must never be able to disagree about what a .ttc
+         is, and a link means editing the converter fixes both at once. -->
+    <Compile Include="..\AeroScenery\AFS2\TmFields.cs">
+      <Link>AFS2\TmFields.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\TmcReader.cs">
+      <Link>AFS2\TmcReader.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\AIDFile.cs">
+      <Link>AFS2\AIDFile.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\IScanlineSource.cs">
+      <Link>AFS2\IScanlineSource.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\WicScanlineSource.cs">
+      <Link>AFS2\WicScanlineSource.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\AFS2World.cs">
+      <Link>AFS2\AFS2World.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\TtcToneCurve.cs">
+      <Link>AFS2\TtcToneCurve.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\SourceImage.cs">
+      <Link>AFS2\SourceImage.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\Coastline.cs">
+      <Link>AFS2\Coastline.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\CoastlineField.cs">
+      <Link>AFS2\CoastlineField.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\WaterFixField.cs">
+      <Link>AFS2\WaterFixField.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\TileSampler.cs">
+      <Link>AFS2\TileSampler.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\TtcFile.cs">
+      <Link>AFS2\TtcFile.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\Bc1Encoder.cs">
+      <Link>AFS2\Bc1Encoder.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\TtcMipChain.cs">
+      <Link>AFS2\TtcMipChain.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\TtcTileName.cs">
+      <Link>AFS2\TtcTileName.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\TtcTileWriter.cs">
+      <Link>AFS2\TtcTileWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\AeroScenery\AFS2\TtcConverter.cs">
+      <Link>AFS2\TtcConverter.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

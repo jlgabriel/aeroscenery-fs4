@@ -1,0 +1,243 @@
+﻿using AeroScenery.Common;
+using AeroScenery.Controls;
+using AeroScenery.OrthoPhotoSources;
+using log4net;
+using Microsoft.Win32;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace AeroScenery.Data
+{
+    public static class RegistryExtensions
+    {
+
+        public static string GetValueAsString(this RegistryKey key, string name)
+        {
+            object result = key.GetValue(name);
+
+            if (result != null)
+            {
+                return result.ToString();
+            }
+
+            return null;
+        }
+
+        public static bool GetValueAsBoolean(this RegistryKey key, string name, bool defaultValue)
+        {
+            if (key.GetValue(name) != null)
+            {
+                bool result = defaultValue;
+                bool.TryParse(key.GetValue(name).ToString(), out result);
+
+                return result;
+            }
+
+            return defaultValue;
+        }
+
+        public static int GetValueAsInteger(this RegistryKey key, string name, int defaultValue)
+        {
+            if (key.GetValue(name) != null)
+            {
+                int result = defaultValue;
+                int.TryParse(key.GetValue(name).ToString(), out result);
+
+                return result;
+
+            }
+
+            return defaultValue;
+        }
+
+        public static double GetValueAsDouble(this RegistryKey key, string name, double defaultValue)
+        {
+            if (key.GetValue(name) != null)
+            {
+                double result = defaultValue;
+                double.TryParse(key.GetValue(name).ToString(), out result);
+
+                return result;
+            }
+
+            return defaultValue;
+        }
+
+        public static T GetValueAsEnum<T>(this RegistryKey key, string name, T defaultValue) where T : struct
+        {
+            if (key.GetValue(name) != null)
+            {
+                T result = defaultValue;
+                Enum.TryParse<T>(key.GetValue(name).ToString(), out result);
+
+                return result;
+            }
+
+            return defaultValue;
+        }
+    }
+
+
+    public class RegistryService
+    {
+        private readonly ILog log = LogManager.GetLogger("AeroScenery");
+
+        // private int settingsVersion = 8;
+
+        /// <summary>
+        /// Gets whether this installation has legacy registry settings
+        /// </summary>
+        /// <returns></returns>
+        public bool HasRegistrySettings()
+        {
+            RegistryKey key = Registry.CurrentUser.OpenSubKey("Software", false);
+            var aerosceneryKey = key.OpenSubKey("AeroScenery", false);
+
+            if (aerosceneryKey != null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public void DeleteRegistrySubKeyTree()
+        {
+            RegistryKey key = Registry.CurrentUser.OpenSubKey("Software", true);
+            var aerosceneryKey = key.OpenSubKey("AeroScenery", true);
+
+            if (aerosceneryKey != null)
+            {
+                key.DeleteSubKeyTree("AeroScenery");
+            }
+        }
+
+        public Settings GetSettingsLegacy()
+        {
+            log.Info("Reading Settings");
+
+            Settings settings = new Settings();
+
+            RegistryKey key = Registry.CurrentUser.OpenSubKey("Software", false);
+            key = key.OpenSubKey("AeroScenery", false);
+
+            // If we have the key, and if looks like it's populated, proceed
+            if (key != null && key.GetValue("DownloadImageTiles") != null)
+            {
+                var cultivationEditorKey = key.OpenSubKey("SceneryEditor", false);
+
+                settings.DownloadImageTiles = key.GetValueAsBoolean("DownloadImageTiles", true);
+                settings.StitchImageTiles = key.GetValueAsBoolean("StitchImageTiles", false);
+                settings.GenerateAIDAndTMCFiles = key.GetValueAsBoolean("GenerateAIDAndTMCFiles", false);
+                settings.RunConverter = key.GetValueAsBoolean("RunGeoConvert", false);
+                settings.DeleteStitchedImageTiles = key.GetValueAsBoolean("DeleteStitchedImageTiles", false);
+                settings.InstallScenery = key.GetValueAsBoolean("InstallScenery", false);
+                settings.ActionSet = key.GetValueAsEnum<ActionSet>("ActionSet", ActionSet.Default);
+
+                settings.OrthophotoSource = key.GetValueAsEnum<OrthophotoSource>("OrthophotoSource", OrthophotoSource.Google);
+                settings.ZoomLevel = key.GetValueAsInteger("ZoomLevel", 17);
+
+                // Less than 12 used to be possible
+                if (settings.ZoomLevel < 12)
+                {
+                    settings.ZoomLevel = 12;
+                }
+
+                settings.DownloadWaitMs = key.GetValueAsInteger("DownloadWaitMs", 10);
+                settings.DownloadWaitRandomMs = key.GetValueAsInteger("DownloadWaitRandomMs", 3);
+                settings.SimultaneousDownloads = key.GetValueAsInteger("SimultaneousDownloads", 4);
+                settings.UserAgent = key.GetValueAsString("UserAgent");
+
+                settings.AFS2Directory = key.GetValueAsString("AFS2Directory");
+                settings.WorkingDirectory = key.GetValueAsString("WorkingDirectory");
+
+                string afsLevelsCsv = key.GetValueAsString("AFSLevelsToGenerate");
+
+                if (!string.IsNullOrEmpty(afsLevelsCsv))
+                {
+                    List<int> afsLevels = afsLevelsCsv.Split(',').Select(int.Parse).ToList();
+                    settings.AFSLevelsToGenerate = afsLevels;
+                }
+                else
+                {
+                    settings.AFSLevelsToGenerate = new List<int>();
+                }
+
+
+                // Settings version 2           
+                settings.MaximumStitchedImageSize = key.GetValueAsInteger("MaximumStitchedImageSize", 32);
+                settings.WriteImagesWithMask = key.GetValueAsBoolean("GeoConvertWriteImagesWithMask", true);
+                //--
+
+                // Settings verison 4
+
+                string afsElevationLevelsCsv = key.GetValueAsString("Elevation.AFSLevelsToGenerate");
+                if (string.IsNullOrEmpty(afsElevationLevelsCsv))
+                {
+                }
+                else
+                {
+                }
+
+                // --
+
+                // Settings version 5
+                var mapControlLastZoomLevelStr = key.GetValueAsString("MapControlLastZoomLevel");
+                if (!String.IsNullOrEmpty(mapControlLastZoomLevelStr))
+                {
+                    int mapControlLastZoomLevel;
+
+                    if (int.TryParse(mapControlLastZoomLevelStr, out mapControlLastZoomLevel))
+                    {
+                        settings.MapControlLastZoomLevel = mapControlLastZoomLevel;
+                    }
+                }
+
+                var mapControlLastXStr = key.GetValueAsString("MapControlLastX");
+                if (!String.IsNullOrEmpty(mapControlLastXStr))
+                {
+                    double mapControlLastX;
+
+                    if (double.TryParse(mapControlLastXStr, out mapControlLastX))
+                    {
+                        settings.MapControlLastX = mapControlLastX;
+                    }
+                }
+
+                var mapControlLastYStr = key.GetValueAsString("MapControlLastY");
+                if (!String.IsNullOrEmpty(mapControlLastYStr))
+                {
+                    double mapControlLastY;
+
+                    if (double.TryParse(mapControlLastYStr, out mapControlLastY))
+                    {
+                        settings.MapControlLastY = mapControlLastY;
+                    }
+                }
+
+                settings.MapControlLastMapType = key.GetValueAsString("MapControlLastMapType");
+
+
+
+                // Settings verison 7
+                settings.ShrinkTMCGridSquareCoords = key.GetValueAsDouble("ShrinkTMCGridSquareCoords", 0.01);
+                // --
+
+                // Settings verison 8
+                settings.AFS2UserDirectory = key.GetValueAsString("AFS2UserDirectory");
+                // --
+
+            }
+
+
+            return settings;
+        }
+
+
+    }
+}
