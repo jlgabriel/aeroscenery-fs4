@@ -7,7 +7,7 @@ community mods, kept as it was written.
 
 ---
 
-## 2.0 — not yet released
+## 2.0 — 2026-09-24
 
 The first public version of this fork. It converts in the app, with no IPACS tool at all, and it
 can stop the photoscenery at a hand-drawn coastline.
@@ -26,6 +26,9 @@ can stop the photoscenery at a hand-drawn coastline.
   the coastline* on the Converter tab. A grid square is cut only if it lies wholly inside the stretch of coast the
   line covers; the log names any square it did not cut, and why.
 - **AeroSceneryConvert**, the same converter as a console program, for scripts.
+- **Documentation.** A user guide with screenshots, a guide to the command-line tools
+  (`docs/advanced-tools.md`) and a description of the `.ttc` format (`docs/ttc-format.md`). The
+  release zip carries the user guide and AeroSceneryConvert.
 
 ### Changed
 
@@ -57,6 +60,7 @@ can stop the photoscenery at a hand-drawn coastline.
   valid response that says *no-tile*. They now appear as *with no imagery available*, and the
   warning about missing tiles appears when it should. Missing tiles show black in the finished
   scenery, and the warning now says so.
+- **The hint under *Scenery Package Name* in Settings fits the dialog.** It now takes two lines.
 - **The log has one timing line per step.** Progress inside the conversion changes only the label
   on screen.
 
