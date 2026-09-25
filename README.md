@@ -46,7 +46,9 @@ The whole list, with the measurements behind each change, is in [CHANGELOG.md](C
 
 ## Quick start
 
-1. Unpack the zip anywhere and run `AeroScenery.exe`. There is nothing to install.
+1. Download `AeroScenery-<version>.zip` from the
+   [latest release](https://github.com/jlgabriel/aeroscenery-fs4/releases/latest). Unpack it
+   anywhere and run `AeroScenery.exe`. There is nothing to install.
 2. Open **Settings**. Check the **Working Folder**, where downloads and intermediate files go, and
    set a **Scenery Package Name**, for example `my_area`. Leave **AFS User Folder** empty: the app
    finds `Documents\Aerofly FS 4` by itself.
@@ -62,6 +64,8 @@ A full level 9 square at zoom 17 takes about 12 minutes from start to installed 
 that is download and stitching.
 
 The [user guide](docs/user-guide.md) goes through each step, and through drawing a coastline.
+The [`.ttc` format description](docs/ttc-format.md) is for those who want to know how the tiles
+are made.
 
 ## Imagery sources and their terms
 
@@ -71,6 +75,14 @@ need an API key, which you set under *Settings > Image Source Accounts*.
 **You are responsible for how you use the imagery.** Each source has its own terms of use, and
 some do not allow what this app does. Read the terms of the source you choose, and use the result
 for your own flying.
+
+## Problems and feedback
+
+Report a bug or ask for a feature in the
+[GitHub issues](https://github.com/jlgabriel/aeroscenery-fs4/issues). Attach the log,
+`Documents\AeroScenery\aeroscenery.txt`, if the problem happened during a run. For questions and
+general discussion, use the
+[thread on the Aerofly forum](https://www.aerofly.com/community/forum/index.php?thread/30158-aeroscenery-2-0-for-aerofly-fs-4-photoscenery-with-a-built-in-converter/).
 
 ## Where things live
 
@@ -94,16 +106,19 @@ files along the cut.
 ## Building
 
 No .NET SDK and no Visual Studio needed, only the Build Tools and the .NET Framework 4.8 Developer
-Pack:
+Pack. Restore the NuGet packages first, then build. A fresh clone does not build without the
+restore:
 
 ```powershell
-& "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\amd64\MSBuild.exe" `
-  AeroScenery\AeroScenery.sln -t:Build -p:Configuration=Release -m -nodeReuse:false
+$msbuild = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\amd64\MSBuild.exe"
+& $msbuild AeroScenery\AeroScenery.sln -t:restore -p:RestorePackagesConfig=true
+& $msbuild AeroScenery\AeroScenery.sln -t:Build -p:Configuration=Release -m -nodeReuse:false
 ```
 
-Restore is packages.config style: `-t:restore -p:RestorePackagesConfig=true`. Close the app before
-you build — a running `AeroScenery.exe` locks its output file. `.\package.ps1 -Build` builds and
-writes the release zip to `dist\`.
+The path to `MSBuild.exe` changes with the version of the Build Tools. Adjust `$msbuild` to your
+installation. Close the app before you build — a running `AeroScenery.exe` locks its output file.
+
+After the restore, `.\package.ps1 -Build` builds and writes the release zip to `dist\`.
 
 ## Projects
 
