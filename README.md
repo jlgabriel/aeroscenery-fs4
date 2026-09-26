@@ -94,7 +94,11 @@ general discussion, use the
 | The drawn coastline | `<Working Folder>\coastline.txt` |
 | Installed scenery | `Documents\Aerofly FS 4\addons\scenery\<package>\images\<grid square>\` |
 | Log | `Documents\AeroScenery\aeroscenery.txt` |
-| Settings | `Documents\AeroScenery\settings.xml` |
+| Settings | `Documents\AeroScenery\settings2.xml` |
+
+The settings file is not `settings.xml`, because @chrispriv's community mods use that file in the
+same folder. On its first start, this version copies the values from `settings.xml` if that file
+exists. It never writes `settings.xml`, so you can use both versions on the same computer.
 
 There is no database. The grid squares shown as downloaded are the folders in the working folder:
 Aerofly names a square after its level and the hex of its south west corner, so the folder name

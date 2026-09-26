@@ -20,6 +20,10 @@ namespace AeroScenery.Data
 
         private RegistryService registryService;
 
+        private const string SettingsFileName = "settings2.xml";
+
+        private const string SharedSettingsFileName = "settings.xml";
+
         private string settingsFilePath;
 
         public SettingsService()
@@ -33,12 +37,17 @@ namespace AeroScenery.Data
 
             string myDocumentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-            this.settingsFilePath = String.Format("{0}{1}AeroScenery{2}settings.xml", myDocumentsPath, 
-                Path.DirectorySeparatorChar, Path.DirectorySeparatorChar);
+            string settingsFolder = Path.Combine(myDocumentsPath, "AeroScenery");
+
+            // This version has its own file. The community mods use settings.xml in the same
+            // folder, and this version must not write it: the mods keep settings there that this
+            // version does not know, and a save would remove them.
+            this.settingsFilePath = Path.Combine(settingsFolder, SettingsFileName);
+            string sharedSettingsFilePath = Path.Combine(settingsFolder, SharedSettingsFileName);
 
             if (File.Exists(this.settingsFilePath))
             {
-                // We have a settings.xml file so let's try to read it
+                // We have a settings2.xml file so let's try to read it
                 try
                 {
                     using (var streamReader = new StreamReader(this.settingsFilePath))
@@ -50,7 +59,7 @@ namespace AeroScenery.Data
                 }
                 catch (Exception ex)
                 {
-                    log.Error("Error parsing settings.xml");
+                    log.Error("Error parsing " + SettingsFileName);
                     log.Error(ex.Message);
                     if (ex.InnerException != null)
                     {
@@ -58,7 +67,7 @@ namespace AeroScenery.Data
 
                     }
 
-                    var messageBox = new CustomMessageBox("There was an error reading the AeroScenery settings.xml file.\n" +
+                    var messageBox = new CustomMessageBox("There was an error reading the AeroScenery " + SettingsFileName + " file.\n" +
                         "If this persists, you can delete the file and let AeroScenery recreate it.",
                         "AeroScenery",
                         MessageBoxIcon.Error);
@@ -67,9 +76,30 @@ namespace AeroScenery.Data
                 }
 
             }
+            else if (File.Exists(sharedSettingsFilePath))
+            {
+                // First start of this version. Copy the values from settings.xml once.
+                // Only read settings.xml, never write it.
+                try
+                {
+                    using (var streamReader = new StreamReader(sharedSettingsFilePath))
+                    {
+                        XmlSerializer serializer = new XmlSerializer(typeof(Settings));
+                        settings = (Settings)serializer.Deserialize(streamReader);
+                    }
+
+                    log.Info("Copied the settings from " + SharedSettingsFileName + " to " + SettingsFileName);
+                }
+                catch (Exception ex)
+                {
+                    // Start from the defaults. settings.xml stays as it is.
+                    log.Error("Could not copy the settings from " + SharedSettingsFileName + ": " + ex.Message);
+                    settings = new Settings();
+                }
+            }
             else
             {
-                // There was no settings.xml. 
+                // There is no settings file.
                 // Do we need to migrate old registry based settings?
                 if (registryService.HasRegistrySettings())
                 {
@@ -109,7 +139,7 @@ namespace AeroScenery.Data
             }
             catch (Exception ex)
             {
-                log.Error("Error saving settings.xml");
+                log.Error("Error saving " + SettingsFileName);
                 log.Error(ex.Message);
                 if (ex.InnerException != null)
                 {
@@ -117,7 +147,7 @@ namespace AeroScenery.Data
 
                 }
 
-                var messageBox = new CustomMessageBox("There was an error reading the AeroScenery settings.xml file.\n" +
+                var messageBox = new CustomMessageBox("There was an error saving the AeroScenery " + SettingsFileName + " file.\n" +
                     "If this persists, you can delete the file and let AeroScenery recreate it.",
                     "AeroScenery",
                     MessageBoxIcon.Error);

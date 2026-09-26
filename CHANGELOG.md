@@ -7,6 +7,18 @@ community mods, kept as it was written.
 
 ---
 
+## Unreleased
+
+### Fixed
+
+- **This version no longer writes `settings.xml`.** @chrispriv's community mods keep their settings
+  in the same file, with API keys and the GeoConvert path that this version does not know. Each
+  start of 2.0 saved the file again without them. The settings are now in `settings2.xml`, in the
+  same folder. On the first start, the values are copied from `settings.xml` if it exists. Both
+  versions can now be used on the same computer.
+
+---
+
 ## 2.0 — 2026-09-24
 
 The first public version of this fork. It converts in the app, with no IPACS tool at all, and it
