@@ -39,7 +39,9 @@ The whole list, with the measurements behind each change, is in [CHANGELOG.md](C
 ## Requirements
 
 - Windows 10 or 11. The .NET Framework 4.8 runtime it needs is already part of Windows.
-- Aerofly FS 4.
+- Aerofly FS 4 on Windows. The scenery does not work on the Android version of Aerofly: the
+  converter writes BC1 textures, and mobile GPUs need ETC2. On Android the colours come out as
+  purple and green noise.
 - Disk space. At zoom 17, one level 9 grid square (about 65 km across) is about 3.6 GB installed,
   plus its downloaded tiles and stitched images in the working folder.
 - Memory. Converting one grid square at zoom 17 uses about 7 GB at its peak.

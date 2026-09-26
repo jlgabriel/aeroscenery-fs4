@@ -3,6 +3,9 @@
 This guide goes from an empty app to photoscenery you can fly over in Aerofly FS 4. The
 [README](../README.md) has the short version.
 
+The scenery is for Aerofly FS 4 on Windows only. The Android version of Aerofly needs textures in
+a different format (ETC2), and it shows these tiles with the wrong colours.
+
 ## 1. Settings
 
 Open **Settings** on the toolbar before your first run. Click **OK** to save; **Cancel** keeps what
