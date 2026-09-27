@@ -22,9 +22,11 @@ tools/coastline/classify.ps1 <working folder>\coastline.txt <working folder>
 
 Run this **first** when the line has grown and squares have to be re-cut. It answers, per square,
 whether the cut touches it at all — `LAND` (leave it alone, a rebuild gives back the same bytes),
-`CUT` (rebuild it), `SEA` (delete it, there is no photoscenery there) or `OUTSIDE` (the square is
+`CUT` (rebuild it), `SEA` (delete it, there is no photoscenery there), `OUTSIDE` (the square is
 not wholly inside the stretch of coast the line covers, so it must not be cut at all — the same
-rule the app and `water_convert.ps1` apply). It costs seconds per
+rule the app and `water_convert.ps1` apply) or `FAR` (the file holds only islands and none comes
+near the square, so the app converts it without a cut). The rule is `Coastline.ForSquare`, the
+one the app calls. It costs seconds per
 square and opens no source image, and most squares need nothing: the whole-package pass of
 2026-08-09 came out 17 to rebuild out of 45, which is fifty minutes of converting instead of two
 and a half hours.
@@ -202,6 +204,46 @@ Two things follow that are worth knowing:
   already accepts. The flat kilometre was tried first and cried wolf on the first 900 km line ever
   drawn — its widest join was 1.86 km, shorter than nine of its own ordinary segments, the longest
   of which is 8.2 km of genuinely straight beach north of Los Vilos.
+
+## Islands — closed rings, alone or with a coast (2026-09-27)
+
+The coast is one open line with one land side. That cannot describe land the sea goes all round,
+so the file now holds a second kind of line: an **island**, a closed ring with the land inside.
+The coast can be absent, and there can be any number of islands. A point is land when it is
+landward of the coast or inside an island. The margin is measured to the nearest line of either
+kind, so the rule is still "within the margin of the land".
+
+- **Drawing.** The **Island** button on the Map tab: down, and the strokes drawn make one island;
+  up again, and the island is closed. The strokes of one island chain by geography, as the coast's
+  do, and the ring closes from its last point back to its first. The closing join counts in
+  `LongestJoinKm`, so `GAP n km` shows how far is left while an island is being drawn round.
+- **The file.** Strokes stay in the order drawn, for undo. `# island N` goes before the strokes of
+  island N and `# coast` before the strokes of the coast, only where the line changes. A file with
+  no marker is all coast, which is every file written before islands.
+- **The side.** A closed ring needs no direction and no extension: the ray cast is exact along any
+  axis. Each island is counted on its own and a point inside any of them is land, so two islands
+  drawn overlapping stay land where they overlap. One even-odd count over all of them would call
+  the overlap sea.
+- **The drawn cut.** `CutLines` culls each line's contour against every line, so what is drawn is
+  the edge of the whole covered area. Where an islet's margin meets its island's, each contour is
+  broken where it goes into the other margin, rather than joined by a chord across it. A break is
+  told from a fold of the same line by the chord's midpoint: at a fold both crossings are at one
+  corner, so the midpoint is on the contour; across another margin it is well inside.
+- **Which squares.** `Coastline.ForSquare` gives the part of the file that may cut one square. The
+  coast only if the square is wholly inside its stretch, as before. An island only if it comes
+  within the margin of the square. And a square outside the coast's stretch is not cut at all, not
+  even at an island in it: the mainland in it is unknown, and a cut at the island alone would
+  remove that mainland.
+- **Speed.** A scan line near the north or south shore of an island runs along hundreds of its
+  segments. So the field now skips a segment that is further away along the scan line than the
+  clamp, before it measures it. That changes no value: over three squares of a real 900 km coastline
+  the field hashes the same, bit for bit, as before, and it builds 2.5 to 26 times faster. Over one
+  grid square next to an island the size of Mallorca it takes about 6 s.
+
+The checks: coverage against an oracle that decides "inside" by the winding number rather than by
+a ray cast, every cut point at the margin, no piece of the cut through the covered area, the
+drawn cut on the rasterised one, overlapping islands, a coast and an island together, and the
+square rule both ways.
 
 ## One thing the map will show you that is not a bug
 

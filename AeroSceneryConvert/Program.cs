@@ -235,9 +235,9 @@ namespace AeroSceneryConvert
                     threads <= 0 ? " (all " + Environment.ProcessorCount + ")" : "");
                 if (coast != null)
                 {
-                    Console.WriteLine("  coast       {0} points, land to the {1}, cut at {2:0.##} NM",
+                    Console.WriteLine("  coast       {0} points, land to the {1}, {2} island(s), cut at {3:0.##} NM",
                         coast.Points.Count, coast.Land.ToString().ToLowerInvariant(),
-                        coast.MarginKm / 1.852);
+                        coast.Islands.Count, coast.MarginKm / 1.852);
                 }
                 if (linearRows)
                 {

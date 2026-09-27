@@ -279,6 +279,9 @@ class CoastTest
         FieldTests();
 
         Console.WriteLine();
+        IslandTests();
+
+        Console.WriteLine();
         Console.WriteLine(failed == 0 ? "ALL PASSED" : failed + " FAILED");
         Environment.Exit(failed == 0 ? 0 : 1);
     }
@@ -551,5 +554,313 @@ class CoastTest
                   landNorth ? (toNorth < 0.0 && toSouth > 0.0) : (toNorth > 0.0 && toSouth < 0.0),
                   String.Format("north {0:F3} km, south {1:F3} km", toNorth, toSouth));
         }
+    }
+
+    // =========================================================================================
+    // Islands - closed rings with the land inside, alone or together with a coast
+    // =========================================================================================
+
+    /// <summary>
+    /// A ring round a centre, in points, with a wobbly radius in km. Anticlockwise unless
+    /// clockwise is set.
+    /// </summary>
+    static List<GeoPoint> Blob(double lat, double lon, double radiusKm, int n, bool clockwise,
+        double wobble)
+    {
+        var pts = new List<GeoPoint>();
+        for (int i = 0; i < n; i++)
+        {
+            double t = 2.0 * Math.PI * i / n * (clockwise ? -1.0 : 1.0);
+            double r = radiusKm * (1.0 + wobble * (0.15 * Math.Sin(3.0 * t) + 0.07 * Math.Sin(7.0 * t)));
+            pts.Add(new GeoPoint(lat + r * Math.Sin(t) / Coastline.KmPerDegLat,
+                                 lon + r * Math.Cos(t) / Coastline.KmPerDegLon(lat)));
+        }
+        return pts;
+    }
+
+    /// <summary>Draws a ring as one island, in the given number of strokes.</summary>
+    static void DrawIsland(Coastline c, List<GeoPoint> ring, int strokes)
+    {
+        c.StartIsland();
+        int per = ring.Count / strokes;
+        for (int k = 0; k < strokes; k++)
+        {
+            int from = k * per;
+            int to = (k == strokes - 1) ? ring.Count : from + per + 1;
+            c.BeginStroke();
+            for (int i = from; i < to; i++)
+            {
+                c.AddPoint(ring[i].Lat, ring[i].Lon);
+            }
+            c.EndStroke(0.0);
+        }
+        c.EndIsland();
+    }
+
+    /// <summary>
+    /// Whether a point is inside a ring, by the winding number. The field uses a ray cast, so
+    /// this shares no code and no method with the thing under test.
+    /// </summary>
+    static bool InsideRing(List<GeoPoint> ring, double lat, double lon)
+    {
+        double sum = 0.0;
+        for (int i = 0; i < ring.Count; i++)
+        {
+            GeoPoint a = ring[i];
+            GeoPoint b = ring[(i + 1) % ring.Count];
+            double a0 = Math.Atan2(a.Lat - lat, a.Lon - lon);
+            double a1 = Math.Atan2(b.Lat - lat, b.Lon - lon);
+            double d = a1 - a0;
+            while (d > Math.PI) d -= 2.0 * Math.PI;
+            while (d < -Math.PI) d += 2.0 * Math.PI;
+            sum += d;
+        }
+        return Math.Abs(sum) > Math.PI;
+    }
+
+    static void IslandTests()
+    {
+        // An island the size of Mallorca, drawn clockwise in three strokes, and two islets. Its
+        // radius runs from 23.4 km (north) to 36.6 km (south). One islet is about 15 km off its
+        // south shore, so their margins do not meet. The other is 2 km off its north shore,
+        // inside the margin.
+        var big = Blob(39.6, 2.9, 30.0, 400, true, 1.0);
+        var far = Blob(39.6 - 55.0 / Coastline.KmPerDegLat, 2.9, 3.0, 40, false, 0.5);
+        var close = Blob(39.6 + 26.4 / Coastline.KmPerDegLat, 2.9, 1.0, 20, false, 0.0);
+
+        var c = new Coastline();
+        c.MarginKm = 5.556;
+        DrawIsland(c, big, 3);
+        DrawIsland(c, far, 1);
+        DrawIsland(c, close, 2);
+
+        Check("three islands and no coast",
+              c.Islands.Count == 3 && !c.HasCoast && !c.IsEmpty,
+              String.Format("{0} islands, {1} coast points", c.Islands.Count, c.Points.Count));
+        Check("an island drawn all the way round closes with no gap", c.LongestJoinKm < 1.0,
+              String.Format("widest join {0:F3} km", c.LongestJoinKm));
+
+        // Half an island is an open ring, and its closing join says so.
+        var half = new Coastline();
+        half.StartIsland();
+        half.BeginStroke();
+        for (int i = 0; i < 200; i++) half.AddPoint(big[i].Lat, big[i].Lon);
+        half.EndStroke(0.0);
+        Check("an island still being drawn shows its closing gap", half.LongestJoinKm > 40.0,
+              String.Format("{0:F1} km", half.LongestJoinKm));
+
+        // A large island takes more than one sitting: saved half drawn and loaded again, it carries
+        // on as the same island, and so does clicking Island again after closing it too early.
+        string halfPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "aeroscenery_half_island.txt");
+        half.Save(halfPath);
+        var resumed = Coastline.Load(halfPath);
+        resumed.BeginStroke();
+        for (int i = 199; i < 400; i++) resumed.AddPoint(big[i].Lat, big[i].Lon);
+        resumed.EndStroke(0.0);
+        Check("a half-drawn island carries on after a save and load",
+              resumed.Islands.Count == 1 && resumed.LongestJoinKm < 1.0,
+              String.Format("{0} islands, widest join {1:F2} km", resumed.Islands.Count, resumed.LongestJoinKm));
+
+        half.EndIsland();
+        half.StartIsland();
+        int again = half.DrawingIsland;
+        resumed.EndIsland();
+        resumed.StartIsland();
+        Check("Island again continues an open island, and starts a new one after a closed one",
+              again == 0 && resumed.DrawingIsland == 1,
+              String.Format("open: island {0}, closed: island {1}", again, resumed.DrawingIsland));
+
+        // ---- save, load, undo ----
+        string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "aeroscenery_islands_test.txt");
+        c.Save(path);
+        var back = Coastline.Load(path);
+        bool same = back.Islands.Count == c.Islands.Count && back.StrokeCount == c.StrokeCount;
+        for (int r = 0; same && r < c.Islands.Count; r++)
+        {
+            same = back.Islands[r].Count == c.Islands[r].Count;
+            for (int i = 0; same && i < c.Islands[r].Count; i++)
+            {
+                same = back.Islands[r][i].Lat == c.Islands[r][i].Lat
+                    && back.Islands[r][i].Lon == c.Islands[r][i].Lon;
+            }
+        }
+        Check("islands save and load round trip exactly", same,
+              String.Format("{0} islands, {1} strokes", back.Islands.Count, back.StrokeCount));
+
+        back.UndoStroke();
+        back.UndoStroke();
+        Check("undo takes the islet's strokes back, last drawn first",
+              back.Islands.Count == 2 && back.StrokeCount == c.StrokeCount - 2,
+              String.Format("{0} islands, {1} strokes", back.Islands.Count, back.StrokeCount));
+
+        back.StartIsland();
+        back.BeginStroke(); back.AddPoint(39.0, 2.0); back.AddPoint(39.01, 2.0); back.EndStroke(0.0);
+        back.EndIsland();
+        back.BeginStroke(); back.AddPoint(39.0, 3.0); back.AddPoint(39.1, 3.0); back.EndStroke(0.0);
+        back.Save(path);
+        var mixed = Coastline.Load(path);
+        Check("coast and island strokes keep their line through a save",
+              mixed.Points.Count == 2 && mixed.StrokeCount == back.StrokeCount,
+              String.Format("{0} coast points, {1} strokes", mixed.Points.Count, mixed.StrokeCount));
+
+        // ---- the cut round an island ----
+        var cuts = c.CutLines();
+        double worst = 0.0;
+        int closedCount = 0;
+        int cutPoints = 0;
+        foreach (var cut in cuts)
+        {
+            if (cut.Count > 2 && cut[0].Lat == cut[cut.Count - 1].Lat
+                              && cut[0].Lon == cut[cut.Count - 1].Lon)
+            {
+                closedCount++;
+            }
+            foreach (var p in cut)
+            {
+                worst = Math.Max(worst, Math.Abs(c.DistanceKm(p.Lat, p.Lon) - c.MarginKm));
+                cutPoints++;
+            }
+        }
+        Check("every island cut point sits at the margin", worst < 0.05,
+              String.Format("{0} points, worst {1:F4} km", cutPoints, worst));
+
+        // The islet 2 km off shares the big island's margin, so each of the two cuts stops where
+        // it runs into the other's margin: two open pieces. The far islet is one closed piece.
+        Check("an islet near its island makes open pieces, a lone islet a closed one",
+              cuts.Count == 3 && closedCount == 1,
+              String.Format("{0} pieces, {1} closed", cuts.Count, closedCount));
+
+        // Between its points, no piece may cut through the covered area: that is the chord a
+        // join across another margin would draw.
+        double chordInside = 0.0;
+        foreach (var cut in cuts)
+        {
+            for (int i = 0; i + 1 < cut.Count; i++)
+            {
+                for (int k = 1; k < 8; k++)
+                {
+                    double lat = cut[i].Lat + (cut[i + 1].Lat - cut[i].Lat) * k / 8.0;
+                    double lon = cut[i].Lon + (cut[i + 1].Lon - cut[i].Lon) * k / 8.0;
+                    chordInside = Math.Max(chordInside, c.MarginKm - c.DistanceKm(lat, lon));
+                }
+            }
+        }
+        Check("no piece of the island cut runs through the covered area", chordInside < 0.1,
+              String.Format("worst {0:F3} km inside the margin", chordInside));
+
+        bool outside = true;
+        foreach (var cut in cuts)
+        {
+            foreach (var p in cut)
+            {
+                foreach (var ring in c.Islands)
+                {
+                    if (InsideRing(ring, p.Lat, p.Lon)) outside = false;
+                }
+            }
+        }
+        Check("the cut lies out at sea, whichever way round the island was drawn", outside, null);
+
+        // ---- the field over the big island's box ----
+        double west = 2.9 - 45.0 / Coastline.KmPerDegLon(39.6);
+        double east = 2.9 + 45.0 / Coastline.KmPerDegLon(39.6);
+        double south = 39.6 - 70.0 / Coastline.KmPerDegLat;
+        double north = 39.6 + 45.0 / Coastline.KmPerDegLat;
+
+        var field = CoastlineField.Build(c, west, east, south, north, 0.05);
+        var rnd = new Random(5);
+        int wrong = 0, tested = 0;
+        for (int i = 0; i < 20000; i++)
+        {
+            double lat = south + rnd.NextDouble() * (north - south);
+            double lon = west + rnd.NextDouble() * (east - west);
+            double d = c.DistanceKm(lat, lon);
+            if (Math.Abs(d - c.MarginKm) < 0.05 || d < 0.05)
+            {
+                continue;
+            }
+            bool land = false;
+            foreach (var ring in c.Islands) land |= InsideRing(ring, lat, lon);
+            bool want = land || d <= c.MarginKm;
+            if (field.IsCovered(lat, lon) != want) wrong++;
+            if ((field.SignedDistanceKm(lat, lon) < 0.0) != land) wrong++;
+            tested++;
+        }
+        Check("island coverage matches inside-or-within-the-margin", wrong == 0 && tested > 19000,
+              String.Format("{0} wrong of {1} tested", wrong, tested));
+
+        double onCut = 0.0;
+        foreach (var cut in cuts)
+        {
+            foreach (var p in cut)
+            {
+                onCut = Math.Max(onCut, Math.Abs(field.SignedDistanceKm(p.Lat, p.Lon) - c.MarginKm));
+            }
+        }
+        Check("the drawn island cut sits on the rasterised one", onCut < 0.05,
+              String.Format("worst {0:F4} km", onCut));
+
+        // ---- two islands drawn overlapping stay land where they overlap ----
+        var twin = new Coastline();
+        DrawIsland(twin, Blob(39.6, 2.9, 5.0, 60, false, 0.0), 1);
+        DrawIsland(twin, Blob(39.6, 2.9 + 6.0 / Coastline.KmPerDegLon(39.6), 5.0, 60, true, 0.0), 1);
+        var tf = CoastlineField.Build(twin, 2.7, 3.1, 39.5, 39.7, 0.05);
+        double overlap = tf.SignedDistanceKm(39.6, 2.9 + 3.0 / Coastline.KmPerDegLon(39.6));
+        Check("where two islands overlap it is land", overlap < 0.0,
+              String.Format("{0:F3} km", overlap));
+
+        // ---- a coast and an island in one file ----
+        var both = new Coastline();
+        both.Land = LandSide.East;
+        both.MarginKm = 5.556;
+        both.BeginStroke();
+        for (int i = 0; i < 60; i++) both.AddPoint(-33.3 + i * 0.01, -71.5);
+        both.EndStroke(0.0);
+        var isle = Blob(-33.0, -71.5 - 20.0 / Coastline.KmPerDegLon(-33.0), 4.0, 50, false, 0.5);
+        DrawIsland(both, isle, 1);
+
+        var bf = CoastlineField.Build(both, -71.9, -71.3, -33.2, -32.8, 0.05);
+        int bothWrong = 0, bothTested = 0;
+        for (int i = 0; i < 10000; i++)
+        {
+            double lat = -33.2 + rnd.NextDouble() * 0.4;
+            double lon = -71.9 + rnd.NextDouble() * 0.6;
+            double d = both.DistanceKm(lat, lon);
+            if (Math.Abs(d - both.MarginKm) < 0.05 || d < 0.05)
+            {
+                continue;
+            }
+            bool land = lon > -71.5 || InsideRing(isle, lat, lon);
+            if (bf.IsCovered(lat, lon) != (land || d <= both.MarginKm)) bothWrong++;
+            bothTested++;
+        }
+        Check("a coast and an island together: landward of the coast or inside the island",
+              bothWrong == 0 && bothTested > 9000,
+              String.Format("{0} wrong of {1} tested", bothWrong, bothTested));
+
+        // ---- which squares are cut ----
+        string why;
+        var part = c.ForSquare(2.1, 2.8, 39.15, 39.69, out why);
+        Check("a square an island reaches is cut at that island",
+              part != null && part.Islands.Count >= 1 && !part.HasCoast, why);
+
+        part = c.ForSquare(10.0, 10.7, 39.15, 39.69, out why);
+        Check("a square no island comes near is not cut", part == null && why != null, why);
+
+        part = both.ForSquare(-72.0, -71.0, -33.25, -32.75, out why);
+        Check("inside the coast's stretch: the coast and the island near it",
+              part != null && part.HasCoast && part.Islands.Count == 1, why);
+
+        part = both.ForSquare(-72.0, -71.0, -33.25, -32.5, out why);
+        Check("outside the coast's stretch: no cut, not even at the island", part == null, why);
+
+        // ---- how long a field over one grid square takes, at the size of Mallorca ----
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var square = CoastlineField.Build(c, 2.109, 2.812, 39.151, 39.686);
+        sw.Stop();
+        Check("a field over one grid square next to a large island builds in reasonable time",
+              sw.Elapsed.TotalSeconds < 30.0,
+              String.Format("{0} x {1} texels in {2:F1} s", square.Width, square.Height,
+                            sw.Elapsed.TotalSeconds));
     }
 }

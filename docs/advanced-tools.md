@@ -95,13 +95,16 @@ It gives one verdict per square:
 | `CUT` | The cut crosses the square. | Empty its `<zoom>-geoconvert-ttc` folder, then convert it again with `--coast`. |
 | `SEA` | The whole square is past the cut. | Delete the square. It has no photoscenery. |
 | `OUTSIDE` | The square is not wholly inside the stretch of coast the line covers. | Do not give it `--coast`. Past an end of the line the cut is only a guess. Draw the line past the square first. |
+| `FAR` | The file has only islands, and none comes within the margin of the square. | Nothing. The app converts it without a cut. |
 
 The verdicts are exact. The script asks the converter's own code for the area to check, so it
 checks the same area that the converter samples.
 
-`OUTSIDE` applies the same rule as the app and `water_convert.ps1`: latitudes when the land is
-east or west, longitudes when it is north or south. See section 5 of the
-[user guide](user-guide.md).
+The script uses the same rule as the app to decide which part of the file may cut a square. The
+coast is used only if the square is wholly inside the stretch it covers: latitudes when the land
+is east or west, longitudes when it is north or south. `water_convert.ps1` applies the same
+stretch rule. An island is used only if it comes within the margin of the square. See section 5
+of the [user guide](user-guide.md).
 
 The script compiles the converter sources with `csc` each time it runs.
 

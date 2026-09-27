@@ -58,22 +58,21 @@ internal static class Classify
             return 1;
         }
 
-        Console.WriteLine("coast    {0:n0} points, {1} strokes, land to the {2}, cut at {3:0.##} NM",
+        Console.WriteLine("coast    {0:n0} points, {1} strokes, land to the {2}, {3} island(s), cut at {4:0.##} NM",
             line.Points.Count, line.StrokeCount, line.Land.ToString().ToLowerInvariant(),
-            line.MarginKm / 1.852);
+            line.Islands.Count, line.MarginKm / 1.852);
         Console.WriteLine();
         Console.WriteLine(
             "square                west      east     south     north    min km   max km  verdict");
 
-        // The stretch of coast the line covers, along the way the coast runs: latitude when the land
-        // is east or west, longitude when it is north or south. Past an end of the line the field
-        // carries the coast straight on, so a square outside the stretch would be cut against a
-        // guess. The app and water_convert.ps1 refuse to cut it, and so must this verdict.
-        bool alongLat = line.Land == LandSide.East || line.Land == LandSide.West;
-        double from = alongLat ? line.Points.Min(p => p.Lat) : line.Points.Min(p => p.Lon);
-        double to = alongLat ? line.Points.Max(p => p.Lat) : line.Points.Max(p => p.Lon);
+        // Which part of the file may cut a square is Coastline.ForSquare, the rule the app uses:
+        // the coast only where the square is wholly inside the stretch it covers, and an island
+        // only where it comes near. water_convert.ps1 applies the same stretch rule.
+        bool alongLat;
+        double from, to;
+        line.CoastStretch(out alongLat, out from, out to);
 
-        int cut = 0, land = 0, sea = 0, outside = 0, failed = 0;
+        int cut = 0, land = 0, sea = 0, outside = 0, far = 0, failed = 0;
 
         foreach (string tmc in tmcs)
         {
@@ -91,12 +90,23 @@ internal static class Classify
                 continue;
             }
 
-            CoastlineField field = CoastlineField.Build(line, west, east, south, north);
-            double min, max;
-            field.RangeOver(west, east, south, north, out min, out max);
+            // The square's own edges when its name gives them, as in the app; the sampled box when not.
+            double sw = west, se = east, ss = south, sn = north;
+            SquareEdges(name, ref sw, ref se, ref ss, ref sn);
+
+            string why;
+            Coastline part = line.ForSquare(sw, se, ss, sn, out why);
+
+            double min = Double.NaN, max = Double.NaN;
+            if (part != null)
+            {
+                CoastlineField field = CoastlineField.Build(part, west, east, south, north);
+                field.RangeOver(west, east, south, north, out min, out max);
+            }
 
             string verdict;
-            if (!InsideStretch(name, alongLat, from, to)) { verdict = "OUTSIDE"; outside++; }
+            if (part == null && line.HasCoast) { verdict = "OUTSIDE"; outside++; }
+            else if (part == null) { verdict = "FAR"; far++; }
             else if (max <= line.MarginKm) { verdict = "LAND"; land++; }
             else if (min > line.MarginKm) { verdict = "SEA"; sea++; }
             else { verdict = "CUT"; cut++; }
@@ -110,9 +120,16 @@ internal static class Classify
         Console.WriteLine("  CUT      {0,3}  the cut crosses them - rebuild with --coast", cut);
         Console.WriteLine("  LAND     {0,3}  wholly landward - rebuilding gives back the same bytes", land);
         Console.WriteLine("  SEA      {0,3}  wholly past the cut - no photoscenery there, delete", sea);
-        Console.WriteLine("  OUTSIDE  {0,3}  not wholly inside the stretch the line covers ({1} {2:0.00} to {3:0.00}) -",
-            outside, alongLat ? "lat" : "lon", from, to);
-        Console.WriteLine("                never give them --coast; draw the line past them first");
+        if (line.HasCoast)
+        {
+            Console.WriteLine("  OUTSIDE  {0,3}  not wholly inside the stretch the coast covers ({1} {2:0.00} to {3:0.00}) -",
+                outside, alongLat ? "lat" : "lon", from, to);
+            Console.WriteLine("                never give them --coast; draw the line past them first");
+        }
+        else
+        {
+            Console.WriteLine("  FAR      {0,3}  no island comes near - the app converts them without a cut", far);
+        }
         if (failed > 0)
         {
             Console.WriteLine("  ?     {0,3}  could not be read", failed);
@@ -191,26 +208,24 @@ internal static class Classify
     /// stitched folder the file sits in.
     /// </summary>
     /// <summary>
-    /// Whether a level 9 square lies wholly inside the stretch the line covers. The square's own
-    /// edges come from its name, as in the app. A name that is not a level 9 square is not
-    /// checked, and counts as inside.
+    /// The edges of a level 9 square, from its name, as in the app. A name that is not a level 9
+    /// square leaves the edges as they were given.
     /// </summary>
-    private static bool InsideStretch(string name, bool alongLat, double from, double to)
+    private static void SquareEdges(string name, ref double west, ref double east,
+        ref double south, ref double north)
     {
         Match m = Regex.Match(name, "^map_09_([0-9a-f]{4})_([0-9a-f]{4})$", RegexOptions.IgnoreCase);
         if (!m.Success)
         {
-            return true;
-        }
-
-        if (alongLat)
-        {
-            int gy = Convert.ToInt32(m.Groups[2].Value, 16) / 128;
-            return AFS2World.LatOfGridY(gy, 9) >= from && AFS2World.LatOfGridY(gy + 1, 9) <= to;
+            return;
         }
 
         int gx = Convert.ToInt32(m.Groups[1].Value, 16) / 128;
-        return AFS2World.LonOfGridX(gx, 9) >= from && AFS2World.LonOfGridX(gx + 1, 9) <= to;
+        int gy = Convert.ToInt32(m.Groups[2].Value, 16) / 128;
+        west = AFS2World.LonOfGridX(gx, 9);
+        east = AFS2World.LonOfGridX(gx + 1, 9);
+        south = AFS2World.LatOfGridY(gy, 9);
+        north = AFS2World.LatOfGridY(gy + 1, 9);
     }
 
     private static string SquareName(string tmc)

@@ -41,7 +41,10 @@ Two rules for `--coast`, both learnt on real squares:
   latitudes when the land is east or west, its longitudes when the land is north or south. Past an
   end of the line the converter carries the coast straight on, so a square past the end is cut
   against a guess. The app applies this rule by itself; from the command line, it is yours to
-  apply.
+  apply. `tools\coastline\classify.ps1` tells you which squares it allows. The rule is for the
+  coast only: an island is a closed ring, and it has no ends.
+- **Draw every island in the square.** The file can hold islands as well as a coast, and a point
+  inside an island is land. The land of an island that was not drawn is cut away as sea.
 - **Empty the output folder first.** A cut writes fewer tiles than a build without one, and an old
   tile left in the folder would be installed as sea.
 

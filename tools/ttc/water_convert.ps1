@@ -71,10 +71,18 @@ $coastFrom = 0.0
 $coastTo = 0.0
 $alongLat = $true
 if ($Coastline) {
+    # Island points do not count: an island is a closed ring, and only the coast has ends.
     $lats = @(); $lons = @()
+    $inIsland = $false
     foreach ($line in (Get-Content $Coastline)) {
         if ($line -match '^\s*#\s*land\s+(\w+)') {
             $alongLat = @('east', 'west') -contains $Matches[1].ToLowerInvariant()
+        } elseif ($line -match '^\s*#\s*island\s+\d+\s*$') {
+            $inIsland = $true
+        } elseif ($line -match '^\s*#\s*coast\s*$') {
+            $inIsland = $false
+        } elseif ($inIsland) {
+            continue
         } elseif ($line -match '^\s*(-?\d+(\.\d+)?)\s+(-?\d+(\.\d+)?)') {
             $lats += [double]$Matches[1]
             $lons += [double]$Matches[3]

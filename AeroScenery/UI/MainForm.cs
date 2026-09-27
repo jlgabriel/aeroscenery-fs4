@@ -941,6 +941,17 @@ namespace AeroScenery
             CoastlineEditor_Changed(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// Down: the strokes drawn make one island. Up again: the island is closed, and the next
+        /// strokes go to the coast. So each island is what is drawn between two clicks.
+        /// </summary>
+        private void coastlineIslandToolStripButton_Click(object sender, EventArgs e)
+        {
+            this.coastlineEditor.DrawingIsland = this.coastlineIslandToolStripButton.Checked;
+            this.mainMap.Focus();
+            CoastlineEditor_Changed(this, EventArgs.Empty);
+        }
+
         private void coastlineUndoToolStripButton_Click(object sender, EventArgs e)
         {
             this.coastlineEditor.Undo();
@@ -1054,12 +1065,18 @@ namespace AeroScenery
             // readout would otherwise go stale exactly while it is being used.
             UpdateCoastlineZoomLabel();
 
-            int points = this.coastlineEditor.Line.Points.Count;
-            if (points == 0)
+            string drawing = this.coastlineEditor.DrawingIsland ? "   DRAWING AN ISLAND" : "";
+
+            // Strokes, not coast points: a file of islands alone has no coast points and must
+            // still be saved.
+            if (this.coastlineEditor.Line.StrokeCount == 0)
             {
-                this.coastlineLabel.Text = "no coastline";
+                this.coastlineLabel.Text = "no coastline" + drawing;
                 return;
             }
+
+            int points = this.coastlineEditor.Line.Points.Count;
+            int islands = this.coastlineEditor.Line.Islands.Count;
 
             string state = "saved";
             try
@@ -1090,10 +1107,14 @@ namespace AeroScenery
             double gapKm = this.coastlineEditor.Line.LongestJoinKm;
             double margin = this.coastlineEditor.MarginKm;
 
-            this.coastlineLabel.Text = String.Format("{0} points, {1} strokes, cut at {2:0.#} NM - {3}{4}",
-                                                     points, this.coastlineEditor.Line.StrokeCount,
+            //
+            // An island counts the join that closes it, so while one is being drawn round the GAP
+            // shows how far there is still to go.
+            this.coastlineLabel.Text = String.Format("{0} coast points, {1} islands, {2} strokes, cut at {3:0.#} NM - {4}{5}{6}",
+                                                     points, islands, this.coastlineEditor.Line.StrokeCount,
                                                      margin / 1.852, state,
-                                                     gapKm > margin ? String.Format("   GAP {0:0.#} km", gapKm) : "");
+                                                     gapKm > margin ? String.Format("   GAP {0:0.#} km", gapKm) : "",
+                                                     drawing);
         }
 
         /// <summary>
@@ -1120,9 +1141,48 @@ namespace AeroScenery
                     case Keys.Control | Keys.Z:
                         this.coastlineEditor.Undo();
                         return true;
+                    case Keys.Space:
+                        // Only on the map, so a space typed in a text box still reaches it. The
+                        // key repeats while it is held; Panning ignores the repeats.
+                        if (this.mainMap.Focused)
+                        {
+                            this.coastlineEditor.Panning = true;
+                            return true;
+                        }
+                        break;
                 }
             }
             return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        /// <summary>
+        /// Releasing the space bar ends the pan. ProcessCmdKey sees only key presses, so the
+        /// release is caught here, where the form previews the key messages of the map.
+        /// </summary>
+        protected override bool ProcessKeyPreview(ref Message m)
+        {
+            const int WM_KEYUP = 0x0101;
+
+            if (m.Msg == WM_KEYUP && (Keys)(int)m.WParam == Keys.Space
+                && this.coastlineEditor != null && this.coastlineEditor.Panning)
+            {
+                this.coastlineEditor.Panning = false;
+                return true;
+            }
+            return base.ProcessKeyPreview(ref m);
+        }
+
+        /// <summary>
+        /// A space bar released in another window never reaches the map, so leaving the window
+        /// ends the pan too.
+        /// </summary>
+        protected override void OnDeactivate(EventArgs e)
+        {
+            if (this.coastlineEditor != null)
+            {
+                this.coastlineEditor.Panning = false;
+            }
+            base.OnDeactivate(e);
         }
 
         #endregion
@@ -2362,6 +2422,43 @@ namespace AeroScenery
             }
         }
 
+        /// <summary>How many copies of the coastline BackUpCoastline keeps.</summary>
+        private const int CoastlineBackups = 20;
+
+        /// <summary>
+        /// Copies the coastline aside before it is loaded, into coastline-backups beside it, with
+        /// the date and time in the name. The newest copies are kept.
+        ///
+        /// The line saves itself on every stroke and on every undo, so a wrong undo is on disk at
+        /// once, and a large island takes more than one sitting. A copy from the start of each
+        /// sitting is what gets such work back. Several are kept, not one, because the app may be
+        /// opened again before anyone sees that something is missing.
+        /// </summary>
+        private void BackUpCoastline(string path)
+        {
+            try
+            {
+                string dir = Path.Combine(Path.GetDirectoryName(path), "coastline-backups");
+                Directory.CreateDirectory(dir);
+
+                string copy = Path.Combine(dir, String.Format("coastline-{0:yyyyMMdd-HHmmss}.txt", DateTime.Now));
+                File.Copy(path, copy, true);
+
+                var old = Directory.GetFiles(dir, "coastline-*.txt");
+                Array.Sort(old, StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < old.Length - CoastlineBackups; i++)
+                {
+                    File.Delete(old[i]);
+                }
+
+                log.Info(String.Format("Coastline backed up to {0}", copy));
+            }
+            catch (Exception ex)
+            {
+                log.Error("Could not back up the coastline", ex);
+            }
+        }
+
         private void mainMap_Load(object sender, EventArgs e)
         {
             //#MOD_k
@@ -2373,12 +2470,17 @@ namespace AeroScenery
                 string path = CoastlinePath();
                 if (File.Exists(path))
                 {
+                    BackUpCoastline(path);
                     this.coastlineEditor.Load(path);
                     this.coastlineMarginToolStripTextBox.Text =
                         (this.coastlineEditor.MarginKm / 1.852).ToString("0.#");
                     this.ShowCoastlineLand();
-                    log.Info(String.Format("Loaded a coastline of {0} points from {1}",
-                                           this.coastlineEditor.Line.Points.Count, path));
+                    // Down if the file ends in an island that is still open, so drawing carries on.
+                    this.coastlineIslandToolStripButton.Checked = this.coastlineEditor.DrawingIsland;
+                    CoastlineEditor_Changed(this, EventArgs.Empty);
+                    log.Info(String.Format("Loaded a coastline of {0} points and {1} islands from {2}",
+                                           this.coastlineEditor.Line.Points.Count,
+                                           this.coastlineEditor.Line.Islands.Count, path));
                 }
             }
             catch (Exception ex)

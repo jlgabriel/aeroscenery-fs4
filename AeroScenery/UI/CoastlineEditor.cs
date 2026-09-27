@@ -70,6 +70,7 @@ namespace AeroScenery.UI
         private readonly Timer edgeTimer = new Timer();
 
         private bool active;
+        private bool panning;
         private bool drawing;
         private System.Drawing.Point lastPixel;
         private System.Drawing.Point cursorPixel;
@@ -103,6 +104,7 @@ namespace AeroScenery.UI
                     return;
                 }
                 active = value;
+                panning = false;
 
                 // The map's drag IS the drawing gesture, so one of them has to give.
                 map.CanDragMap = !active;
@@ -113,6 +115,33 @@ namespace AeroScenery.UI
                     StopDrawing();
                 }
                 Redraw();
+            }
+        }
+
+        /// <summary>
+        /// True while the space bar is held down: the drag moves the map instead of drawing, as in
+        /// GIMP. The edge pan and the arrow keys stay, but on a long coast they were not enough -
+        /// the user turned Draw Coast off to move the map and on again to carry on.
+        /// </summary>
+        public bool Panning
+        {
+            get { return panning; }
+            set
+            {
+                if (!active || panning == value)
+                {
+                    return;
+                }
+                panning = value;
+                // Space pressed in the middle of a stroke ends the stroke there.
+                if (panning && drawing)
+                {
+                    StopDrawing();
+                    Redraw();
+                    OnChanged();
+                }
+                map.CanDragMap = panning;
+                map.Cursor = panning ? Cursors.Hand : Cursors.Cross;
             }
         }
 
@@ -138,13 +167,39 @@ namespace AeroScenery.UI
             }
         }
 
+        /// <summary>
+        /// True while the strokes drawn make an island. Setting it true starts a new island;
+        /// setting it false closes the island, and the next strokes go to the coast.
+        /// </summary>
+        public bool DrawingIsland
+        {
+            get { return Line.DrawingIsland != Coastline.CoastStroke; }
+            set
+            {
+                if (value == DrawingIsland)
+                {
+                    return;
+                }
+                StopDrawing();
+                if (value)
+                {
+                    Line.StartIsland();
+                }
+                else
+                {
+                    Line.EndIsland();
+                }
+                Redraw();
+            }
+        }
+
         // -----------------------------------------------------------------------------------
         // drawing
         // -----------------------------------------------------------------------------------
 
         private void OnMouseDown(object sender, MouseEventArgs e)
         {
-            if (!active || e.Button != MouseButtons.Left)
+            if (!active || panning || e.Button != MouseButtons.Left)
             {
                 return;
             }
@@ -297,8 +352,24 @@ namespace AeroScenery.UI
         private void DrawCoastOnly()
         {
             overlay.Routes.Clear();
-            AddRoute(Line.Points, "coast", Color.Yellow, 2);
+            AddLines();
             map.Refresh();
+        }
+
+        /// <summary>
+        /// The drawn lines: the coast, and each island closed back to its first point. The
+        /// island being drawn has not been closed by the user yet, so its closing join shows as a
+        /// straight line across the sea until the island is drawn all the way round.
+        /// </summary>
+        private void AddLines()
+        {
+            AddRoute(Line.Points, "coast", Color.Yellow, 2);
+            foreach (var ring in Line.Islands)
+            {
+                var closed = new List<GeoPoint>(ring);
+                closed.Add(ring[0]);
+                AddRoute(closed, "island", Color.Yellow, 2);
+            }
         }
 
         /// <summary>
@@ -316,8 +387,11 @@ namespace AeroScenery.UI
 
             if (!Line.IsEmpty)
             {
-                AddRoute(Line.CutLine(), "cut", Color.OrangeRed, 2);
-                AddRoute(Line.Points, "coast", Color.Yellow, 2);
+                foreach (var cut in Line.CutLines())
+                {
+                    AddRoute(cut, "cut", Color.OrangeRed, 2);
+                }
+                AddLines();
             }
             map.Refresh();
         }

@@ -121,16 +121,38 @@ first few kilometres, most imagery at sea is flat fill.
    exactly what you will get.
 2. Zoom in until the toolbar shows **50 m/px or finer**. It warns *too coarse* below that.
 3. Click **Draw Coast**, then drag along the waterline. Release the button to pan, and carry on.
-   The arrow keys pan, and the map pans when you draw to its edge. **Ctrl+Z** or **Undo** removes
-   the last stroke.
+   Hold **Space** and drag to move the map; release Space to draw again. The arrow keys pan too,
+   and the map pans when you draw to its edge. **Ctrl+Z** or **Undo** removes the last stroke.
 4. Set the distance out to sea in **Cut NM**.
 5. Set which side of the line is **land** in the dropdown next to it. *Land east* is right for a
    coast that faces west, *land west* for one that faces east, and *land north* or *land south* for
    a coast that runs east–west. The cut on the map moves to the other side as soon as you change
    it, so you can check it by eye.
 
-The line saves itself after every stroke, to `<Working Folder>\coastline.txt`. There is one line
+The line saves itself after every stroke, to `<Working Folder>\coastline.txt`. There is one file
 for the whole working folder, so neighbouring squares always agree about their shared edge.
+
+Each time the app starts, it copies the line to `<Working Folder>\coastline-backups\`, with the
+date and time in the file name, and keeps the 20 newest copies. If an undo went too far, close the
+app and copy the newest backup back over `coastline.txt`.
+
+**To draw an island:**
+
+![Three islands drawn with Island. Each drawn waterline (yellow) is a closed ring, and the cut (red) goes all round each island, 3 NM out to sea.](images/draw-islands.png)
+
+1. Click **Island**, so that it stays down. The toolbar shows *DRAWING AN ISLAND*.
+2. Drag along the island's waterline, all the way round. You can use as many strokes as you need,
+   as for a coast. You do not have to close the ring yourself: the last point joins the first.
+   Until you are all the way round, the toolbar shows the open part as `GAP n km`.
+3. Click **Island** again to close the island.
+4. For the next island, click **Island** again and draw it.
+
+An island has no land side to set: its land is inside the ring. The cut goes all the way round it.
+Where two islands, or an island and the coast, are closer than twice the cut distance, their cuts
+join into one.
+
+One file can hold a coast and islands together. A point is land when it is on the land side of the
+coast or inside an island.
 
 **Rules that matter:**
 
@@ -146,8 +168,15 @@ for the whole working folder, so neighbouring squares always agree about their s
   direction, and add to either end on another day.
 - **A gap stays a gap.** A stretch you did not draw becomes a straight line. The toolbar shows
   `GAP n km` when a gap is wide enough to move the cut.
-- **One line has one land side.** The cut suits a long coast, mainly north–south or mainly
-  east–west. It does not suit an island all round, or a coast that turns back on itself.
+- **The coast has one land side.** It suits a long coast, mainly north–south or mainly east–west.
+  For land that the sea goes all round, draw an island.
+- **Draw every island in a square you build.** A square is cut at an island only if the island
+  comes within the cut distance of it. The land of an island that you did not draw is cut away as
+  sea. A square that no island comes near, in a file with no coast, converts without a cut.
+- **A square outside the stretch of the coast is not cut at all**, not even at an island in it. The
+  mainland in that square is unknown, so a cut at the island alone could remove it. To build
+  islands far from the coast you drew, such as an island in another country, use a separate
+  working folder. Each working folder has its own coastline file.
 
 A square that lies wholly past the cut produces no tiles at all. That is a result, not an error:
 there is no photoscenery in that square. The installer leaves its install folder alone and says so

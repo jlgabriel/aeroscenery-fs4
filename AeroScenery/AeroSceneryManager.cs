@@ -82,7 +82,7 @@ namespace AeroScenery
             afsFileGenerator = new AFSFileGenerator();
 
             imageTiles = null;
-            version = "2.0.1";
+            version = "2.1";
         }
 
         public Settings Settings
@@ -561,27 +561,29 @@ namespace AeroScenery
                 return null;
             }
 
-            log.InfoFormat("Cutting at the coastline in {0}: {1} points, lat {2:0.00} to {3:0.00}, lon {4:0.00} to {5:0.00}, land to the {6}, {7:0.##} NM out to sea",
-                path, coast.Points.Count,
-                coast.Points.Min(p => p.Lat), coast.Points.Max(p => p.Lat),
-                coast.Points.Min(p => p.Lon), coast.Points.Max(p => p.Lon),
-                coast.Land.ToString().ToLowerInvariant(),
-                coast.MarginKm / 1.852);
+            if (coast.HasCoast)
+            {
+                log.InfoFormat("Cutting at the coastline in {0}: {1} points, lat {2:0.00} to {3:0.00}, lon {4:0.00} to {5:0.00}, land to the {6}, {7:0.##} NM out to sea",
+                    path, coast.Points.Count,
+                    coast.Points.Min(p => p.Lat), coast.Points.Max(p => p.Lat),
+                    coast.Points.Min(p => p.Lon), coast.Points.Max(p => p.Lon),
+                    coast.Land.ToString().ToLowerInvariant(),
+                    coast.MarginKm / 1.852);
+            }
+
+            if (coast.Islands.Count > 0)
+            {
+                log.InfoFormat("Cutting at {0} island(s) in {1}, {2:0.##} NM out to sea",
+                    coast.Islands.Count, path, coast.MarginKm / 1.852);
+            }
 
             return coast;
         }
 
         /// <summary>
-        /// The coastline for one grid square, or null to convert it without a cut.
-        ///
-        /// A square is cut only if it lies wholly inside the stretch of coast the line covers. Past
-        /// the end of the line the converter carries the coast straight on, so a square outside
-        /// that stretch would be cut against a guess. This was learnt on a real square 2.1 degrees
-        /// past the end of the line: it lost two thirds of its tiles to a sea that was not there.
-        ///
-        /// Which way the stretch runs follows the land side. With the land east or west the coast
-        /// runs north-south and its extent is latitude; with the land north or south it runs
-        /// east-west and its extent is longitude. CoastlineField makes the same choice.
+        /// The coastline for one grid square, or null to convert it without a cut. The rule is
+        /// Coastline.ForSquare: the coast only where the square is wholly inside the stretch it
+        /// covers, and an island only where it comes near the square.
         /// </summary>
         private Coastline CoastFor(AFS2GridSquare afs2GridSquare, Coastline coast)
         {
@@ -590,38 +592,18 @@ namespace AeroScenery
                 return null;
             }
 
-            bool alongLatitude = coast.Land == LandSide.East || coast.Land == LandSide.West;
+            string why;
+            var part = coast.ForSquare(afs2GridSquare.WestLongitude, afs2GridSquare.EastLongitude,
+                afs2GridSquare.SouthLatitude, afs2GridSquare.NorthLatitude, out why);
 
-            double from, to, squareFrom, squareTo;
-            string axis;
-
-            if (alongLatitude)
+            if (part == null)
             {
-                from = coast.Points.Min(p => p.Lat);
-                to = coast.Points.Max(p => p.Lat);
-                squareFrom = afs2GridSquare.SouthLatitude;
-                squareTo = afs2GridSquare.NorthLatitude;
-                axis = "lat";
-            }
-            else
-            {
-                from = coast.Points.Min(p => p.Lon);
-                to = coast.Points.Max(p => p.Lon);
-                squareFrom = afs2GridSquare.WestLongitude;
-                squareTo = afs2GridSquare.EastLongitude;
-                axis = "lon";
+                log.WarnFormat("Grid square {0} is converted without a cut: {1}. " +
+                    "To cut it, draw the coastline past both of its edges, or draw its island.",
+                    afs2GridSquare.Name, why);
             }
 
-            if (squareFrom >= from && squareTo <= to)
-            {
-                return coast;
-            }
-
-            log.WarnFormat("Grid square {0} ({1} {2:0.00} to {3:0.00}) is not wholly inside the stretch of coast the line covers ({1} {4:0.00} to {5:0.00}). " +
-                "It is converted without a cut. To cut it, draw the coastline past both of its edges.",
-                afs2GridSquare.Name, axis, squareFrom, squareTo, from, to);
-
-            return null;
+            return part;
         }
 
         /// <summary>

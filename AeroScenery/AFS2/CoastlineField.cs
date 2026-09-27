@@ -110,10 +110,10 @@ namespace AeroScenery.AFS2
             }
 
             List<GeoPoint> pts = line.Points;
-            if (pts.Count < 2)
+            if (line.IsEmpty)
             {
                 throw new InvalidOperationException(
-                    "a coastline needs at least two points before it can be rasterised");
+                    "a coastline needs a coast or an island before it can be rasterised");
             }
 
             if (east < west) { double t = west; west = east; east = t; }
@@ -247,12 +247,24 @@ namespace AeroScenery.AFS2
         /// line of constant latitude only ever has a handful of segments near it, and the same
         /// holds for an east-west coast scanned by longitude. Scanning the other way round would
         /// put the whole line within reach of every scan line near the coast.
+        ///
+        /// An island is a closed ring, so its side needs no direction and no extension: a point is
+        /// inside when the ray crosses the ring an odd number of times, whichever way the ray
+        /// runs. Each island is counted on its own, and a point inside any of them is land. So
+        /// two islands drawn overlapping stay land where they overlap, where one even-odd count
+        /// over both would call the overlap sea. With no coast, the scan runs along latitude.
+        ///
+        /// The distance is to the nearest segment of any line. A segment further away along the
+        /// scan line than the clamp is skipped before it is measured. That changes no answer,
+        /// because such a segment is further away than the clamp, but it matters for an island:
+        /// a scan line near the north or south shore of an island runs along hundreds of segments.
         /// </summary>
         private static void Fill(float[] field, int width, int height,
             double originLon, double originLat, double lonStep, double latStep,
             Coastline line, List<GeoPoint> pts)
         {
-            bool alongLon = (line.Land == LandSide.East || line.Land == LandSide.West);
+            bool haveCoast = line.HasCoast;
+            bool alongLon = !haveCoast || (line.Land == LandSide.East || line.Land == LandSide.West);
             bool towardsPositive = (line.Land == LandSide.East || line.Land == LandSide.North);
 
             // Well beyond the margin, so no interpolation anywhere near the cut can see the clamp.
@@ -261,6 +273,15 @@ namespace AeroScenery.AFS2
                 ? clampKm / Coastline.KmPerDegLat
                 : clampKm / Coastline.KmPerDegLon(originLat + 0.5 * height * latStep);
 
+            // The clamp along the scan line in degrees, made large enough to be safe everywhere
+            // a candidate can be: a degree of longitude is shortest at the latitude furthest
+            // from the equator.
+            double widestLat = Math.Max(Math.Abs(originLat), Math.Abs(originLat + height * latStep))
+                             + clampKm / Coastline.KmPerDegLat;
+            double clampAlong = alongLon
+                ? 1.01 * clampKm / Coastline.KmPerDegLon(Math.Min(widestLat, 89.0))
+                : 1.01 * clampKm / Coastline.KmPerDegLat;
+
             int acrossCount = alongLon ? height : width;
             int alongCount = alongLon ? width : height;
             double acrossOrigin = alongLon ? originLat : originLon;
@@ -268,17 +289,57 @@ namespace AeroScenery.AFS2
             double alongOrigin = alongLon ? originLon : originLat;
             double alongStep = alongLon ? lonStep : latStep;
 
-            List<GeoPoint> ext = Extend(pts, alongLon,
-                acrossOrigin - acrossStep, acrossOrigin + acrossCount * acrossStep);
+            List<GeoPoint> ext = haveCoast
+                ? Extend(pts, alongLon, acrossOrigin - acrossStep, acrossOrigin + acrossCount * acrossStep)
+                : new List<GeoPoint>();
+
+            // Each island closed, so the walk along it comes back to its first point.
+            var rings = new List<List<GeoPoint>>();
+            foreach (var island in line.Islands)
+            {
+                var ring = new List<GeoPoint>(island);
+                ring.Add(island[0]);
+                rings.Add(ring);
+            }
+
+            // Every segment of every line, for the distance.
+            var segA = new List<GeoPoint>();
+            var segB = new List<GeoPoint>();
+            for (int i = 0; i + 1 < ext.Count; i++)
+            {
+                segA.Add(ext[i]);
+                segB.Add(ext[i + 1]);
+            }
+            foreach (var ring in rings)
+            {
+                for (int i = 0; i + 1 < ring.Count; i++)
+                {
+                    segA.Add(ring[i]);
+                    segB.Add(ring[i + 1]);
+                }
+            }
+
             var crossings = new double[ext.Count];
-            var near = new int[ext.Count];
+            var ringCrossings = new double[rings.Count][];
+            var ringCount = new int[rings.Count];
+            var ringBehind = new int[rings.Count];
+            for (int r = 0; r < rings.Count; r++)
+            {
+                ringCrossings[r] = new double[rings[r].Count];
+            }
+            var near = new int[segA.Count];
 
             for (int u = 0; u < acrossCount; u++)
             {
                 double across = acrossOrigin + u * acrossStep;
 
                 int crossCount = Crossings(ext, alongLon, across, crossings);
-                int nearCount = Candidates(ext, alongLon, across, clampAcross, near);
+                for (int r = 0; r < rings.Count; r++)
+                {
+                    ringCount[r] = Crossings(rings[r], alongLon, across, ringCrossings[r]);
+                    ringBehind[r] = 0;
+                }
+                int nearCount = Candidates(segA, segB, alongLon, across, clampAcross, near);
 
                 // The scan runs one way along the ray axis, so the count of crossings behind it
                 // only ever grows - no search, just a pointer that keeps up.
@@ -292,8 +353,25 @@ namespace AeroScenery.AFS2
                         behind++;
                     }
 
-                    int ahead = towardsPositive ? crossCount - behind : behind;
-                    bool land = (ahead & 1) == 0;
+                    bool land = false;
+                    if (haveCoast)
+                    {
+                        int ahead = towardsPositive ? crossCount - behind : behind;
+                        land = (ahead & 1) == 0;
+                    }
+
+                    for (int r = 0; r < rings.Count; r++)
+                    {
+                        double[] rc = ringCrossings[r];
+                        while (ringBehind[r] < ringCount[r] && rc[ringBehind[r]] <= along)
+                        {
+                            ringBehind[r]++;
+                        }
+                        if ((ringBehind[r] & 1) == 1)
+                        {
+                            land = true;
+                        }
+                    }
 
                     var p = alongLon
                         ? new GeoPoint(across, along)
@@ -303,7 +381,18 @@ namespace AeroScenery.AFS2
                     for (int k = 0; k < nearCount; k++)
                     {
                         int s = near[k];
-                        double dd = Coastline.SegmentDistanceKm(p, ext[s], ext[s + 1]);
+                        GeoPoint a = segA[s];
+                        GeoPoint b = segB[s];
+
+                        double aAlong = alongLon ? a.Lon : a.Lat;
+                        double bAlong = alongLon ? b.Lon : b.Lat;
+                        if (along < Math.Min(aAlong, bAlong) - clampAlong
+                            || along > Math.Max(aAlong, bAlong) + clampAlong)
+                        {
+                            continue;
+                        }
+
+                        double dd = Coastline.SegmentDistanceKm(p, a, b);
                         if (dd < d)
                         {
                             d = dd;
@@ -408,14 +497,14 @@ namespace AeroScenery.AFS2
         /// clamp measured across the scan alone, so testing only that one coordinate can drop a
         /// segment but never the right one.
         /// </summary>
-        private static int Candidates(List<GeoPoint> ext, bool alongLon, double across,
-            double clampAcross, int[] into)
+        private static int Candidates(List<GeoPoint> segA, List<GeoPoint> segB, bool alongLon,
+            double across, double clampAcross, int[] into)
         {
             int n = 0;
-            for (int i = 0; i + 1 < ext.Count; i++)
+            for (int i = 0; i < segA.Count; i++)
             {
-                double a = alongLon ? ext[i].Lat : ext[i].Lon;
-                double b = alongLon ? ext[i + 1].Lat : ext[i + 1].Lon;
+                double a = alongLon ? segA[i].Lat : segA[i].Lon;
+                double b = alongLon ? segB[i].Lat : segB[i].Lon;
                 double lo = (a < b ? a : b) - clampAcross;
                 double hi = (a < b ? b : a) + clampAcross;
 

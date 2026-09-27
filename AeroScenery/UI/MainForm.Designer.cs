@@ -62,6 +62,7 @@ namespace AeroScenery
             this.coastlineSeparator = new System.Windows.Forms.ToolStripSeparator();
             this.coastlineDrawToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.coastlineUndoToolStripButton = new System.Windows.Forms.ToolStripButton();
+            this.coastlineIslandToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.coastlineSaveToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.coastlineMarginLabel = new System.Windows.Forms.ToolStripLabel();
             this.coastlineMarginToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
@@ -467,6 +468,7 @@ namespace AeroScenery
             this.coastlineToolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.coastlineToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.coastlineDrawToolStripButton,
+            this.coastlineIslandToolStripButton,
             this.coastlineUndoToolStripButton,
             this.coastlineSeparator,
             this.coastlineMarginLabel,
@@ -486,8 +488,15 @@ namespace AeroScenery
             this.coastlineDrawToolStripButton.Name = "coastlineDrawToolStripButton";
             this.coastlineDrawToolStripButton.Size = new System.Drawing.Size(85, 22);
             this.coastlineDrawToolStripButton.Text = "Draw Coast";
-            this.coastlineDrawToolStripButton.ToolTipText = "Drag to trace the waterline. Arrow keys pan, the screen edge pans while you draw, Ctrl+Z undoes a stroke.";
+            this.coastlineDrawToolStripButton.ToolTipText = "Drag to trace the waterline. Hold Space and drag to move the map. Arrow keys pan, the screen edge pans while you draw, Ctrl+Z undoes a stroke.";
             this.coastlineDrawToolStripButton.Click += new System.EventHandler(this.coastlineDrawToolStripButton_Click);
+            this.coastlineIslandToolStripButton.CheckOnClick = true;
+            this.coastlineIslandToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.coastlineIslandToolStripButton.Name = "coastlineIslandToolStripButton";
+            this.coastlineIslandToolStripButton.Size = new System.Drawing.Size(50, 22);
+            this.coastlineIslandToolStripButton.Text = "Island";
+            this.coastlineIslandToolStripButton.ToolTipText = "Down: the strokes you draw make one island, a closed ring with the land inside. Click again to close the island. Down again starts the next island.";
+            this.coastlineIslandToolStripButton.Click += new System.EventHandler(this.coastlineIslandToolStripButton_Click);
             this.coastlineUndoToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.coastlineUndoToolStripButton.Name = "coastlineUndoToolStripButton";
             this.coastlineUndoToolStripButton.Size = new System.Drawing.Size(45, 22);
@@ -1263,6 +1272,7 @@ namespace AeroScenery
         private System.Windows.Forms.ToolStripSeparator coastlineSeparator;
         private System.Windows.Forms.ToolStripButton coastlineDrawToolStripButton;
         private System.Windows.Forms.ToolStripButton coastlineUndoToolStripButton;
+        private System.Windows.Forms.ToolStripButton coastlineIslandToolStripButton;
         private System.Windows.Forms.ToolStripButton coastlineSaveToolStripButton;
         private System.Windows.Forms.ToolStripLabel coastlineMarginLabel;
         private System.Windows.Forms.ToolStripTextBox coastlineMarginToolStripTextBox;

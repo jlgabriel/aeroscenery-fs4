@@ -24,10 +24,11 @@ features that path does not use, and replaces the conversion step with a convert
   session and no IPACS SDK — nothing to download besides the app. On a comparable workload it was
   about 40 times faster than IPACS' GeoConvert. Its output is checked byte for byte against an
   independent reference implementation of the format.
-- **A cut at the coastline.** Aerial imagery stops somewhere at sea, and where it stops it leaves
-  a straight edge or a black area. Draw the waterline on the map, and the converter stops the
-  photoscenery a set distance out to sea (3 NM by default), along the shape of the coast. Aerofly's
-  own sea shows beyond it.
+- **A cut at the coastline, for coasts and islands.** Aerial imagery stops somewhere at sea, and
+  where it stops it leaves a straight edge or a black area. Draw the waterline on the map, and the
+  converter stops the photoscenery a set distance out to sea (3 NM by default), along the shape of
+  the coast. Aerofly's own sea shows beyond it. Since 2.1, you can also draw islands, and the cut
+  goes all round each one.
 - **Install as an Aerofly add-on.** Scenery goes to
   `Documents\Aerofly FS 4\addons\scenery\<package>\images\<grid square>\`, the layout Aerofly
   add-ons use. Each area can be its own package, and an install never touches another area.
@@ -65,7 +66,8 @@ The whole list, with the measurements behind each change, is in [CHANGELOG.md](C
 A full level 9 square at zoom 17 takes about 12 minutes from start to installed on an SSD. Most of
 that is download and stitching.
 
-The [user guide](docs/user-guide.md) goes through each step, and through drawing a coastline.
+The [user guide](docs/user-guide.md) goes through each step, and through drawing a coastline and
+islands.
 The [`.ttc` format description](docs/ttc-format.md) is for those who want to know how the tiles
 are made.
 
@@ -91,7 +93,8 @@ general discussion, use the
 | | |
 |---|---|
 | Working files | `<Working Folder>\<grid square>\` |
-| The drawn coastline | `<Working Folder>\coastline.txt` |
+| The drawn coastline and islands | `<Working Folder>\coastline.txt` |
+| Backups of the coastline | `<Working Folder>\coastline-backups\` |
 | Installed scenery | `Documents\Aerofly FS 4\addons\scenery\<package>\images\<grid square>\` |
 | Log | `Documents\AeroScenery\aeroscenery.txt` |
 | Settings | `Documents\AeroScenery\settings2.xml` |

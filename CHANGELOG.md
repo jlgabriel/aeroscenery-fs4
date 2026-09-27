@@ -7,6 +7,48 @@ community mods, kept as it was written.
 
 ---
 
+## 2.1 — unreleased
+
+The coastline cut now works for islands.
+
+### Added
+
+- **Islands.** The coastline cut used to need one open line with one land side, so it did not suit
+  land that the sea goes all round. Now **Island** on the Map tab draws an island: a closed ring
+  with the land inside. Click it down, trace the island's waterline in as many strokes as you
+  need, and click it up to close the island. The ring closes from its last point back to its first
+  by itself. Until the island is drawn all the way round, the toolbar shows the open part as
+  `GAP n km`. The photoscenery stops the same distance out to sea all round the island. One
+  coastline file can hold any number of islands, and a coast as well: a point is land when it is on
+  the land side of the coast or inside an island. Where two islands, or an island and the coast,
+  are closer than twice the cut distance, their cuts join into one. Islands drawn overlapping stay
+  land where they overlap.
+- **Hold Space to move the map while you draw**, as in image editors. Release Space to draw again.
+- **An island left half drawn carries on.** A large island takes more than one sitting. When the
+  app starts and the last island is still open, **Island** is down, and the next stroke continues
+  that island.
+- **Backups of the coastline.** Each time the app starts, it copies `coastline.txt` to
+  `<Working Folder>\coastline-backups\`, with the date and time in the file name, and keeps the 20
+  newest copies. The line saves itself on every stroke and on every undo, so an undo that went too
+  far is on disk at once. A copy from the start of each sitting gets that work back.
+
+### Changed
+
+- **Which grid squares are cut.** The coast is used only for a square that lies wholly inside the
+  stretch it covers, as before. An island is used only for a square it comes within the cut
+  distance of. A square outside the coast's stretch is not cut at all, not even at an island in
+  it: the mainland in that square is unknown, and a cut at the island alone could remove it. To
+  build islands far from a coast you drew, use a separate working folder. `classify.ps1` uses the
+  same rule and has a new verdict, `FAR`, for a square that no island comes near.
+- **The coastline file** marks island strokes with `# island N` and coast strokes with `# coast`.
+  A file without these marks is all coast, so a coastline drawn with an earlier version loads as
+  before. An earlier version reads the island strokes of a new file as coast.
+- **The distance field of the cut builds faster**: 2.5 to 26 times on three squares of a real
+  coastline, with a result identical bit for bit. About 6 s for one grid square next to an island
+  the size of Mallorca.
+
+---
+
 ## 2.0.1 — 2026-09-26
 
 The first feedback from the forum. One new feature and two fixes.
