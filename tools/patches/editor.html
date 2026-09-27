@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Patch editor</title>
+<style>
+  :root { --bg:#16181c; --panel:#20242a; --fg:#e6e6e6; --dim:#9aa3ad; --acc:#4fc3f7; --ok:#66bb6a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px system-ui, sans-serif; display:flex; flex-direction:column; height:100vh; }
+  header { background:var(--panel); padding:8px 12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; border-bottom:1px solid #333; }
+  button, select { background:#2d333b; color:var(--fg); border:1px solid #444; border-radius:4px; padding:4px 10px; font:inherit; cursor:pointer; }
+  button:hover { border-color:var(--acc); }
+  button.on { background:var(--acc); color:#000; border-color:var(--acc); }
+  button.primary { background:var(--ok); color:#000; border-color:var(--ok); }
+  label { color:var(--dim); display:flex; gap:4px; align-items:center; }
+  #status { color:var(--dim); margin-left:auto; }
+  #wrap { flex:1; overflow:auto; }
+  canvas { display:block; cursor:crosshair; }
+  #help { background:var(--panel); color:var(--dim); padding:6px 12px; border-top:1px solid #333; font-size:12px; }
+  kbd { background:#2d333b; border:1px solid #444; border-radius:3px; padding:0 4px; color:var(--fg); }
+</style>
+</head>
+<body>
+<header>
+  <label>Tolerance <select id="tol"><option>12</option><option>16</option><option selected>20</option><option>25</option><option>30</option></select></label>
+  <label>Zoom <select id="zoom"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+  <button id="bBefore" class="on">Before</button>
+  <button id="bAfter">After</button>
+  <button id="bPreview" class="primary">Preview</button>
+  <button id="bUndo">Undo</button>
+  <button id="bSave">Save</button>
+  <span id="status">loading...</span>
+</header>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="help">
+  Click inside a patch to mark all of it. Right-click a marked patch to remove it.
+  If a mark runs into good terrain, lower the tolerance; if it stops short, raise it.
+  <kbd>V</kbd> before / after &middot; <kbd>Ctrl+Z</kbd> undo. Save writes the clicks to the state file.
+</div>
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+const base = new Image(), prev = new Image(), ovl = new Image();
+let clicks = [], undo = [], zoom = 2, view = 'before', hasPreview = false, hasOvl = false, busy = false, dirty = false;
+
+function status(t) { $('status').textContent = t; }
+function snapshot() { undo.push(JSON.stringify(clicks)); if (undo.length > 100) undo.shift(); }
+async function post(url, body) { return fetch(url, { method: 'POST', body: JSON.stringify(body) }); }
+
+function draw() {
+  ctx.imageSmoothingEnabled = false;
+  const after = view === 'after' && hasPreview;
+  ctx.drawImage(after ? prev : base, 0, 0, cv.width, cv.height);
+  if (!after && hasOvl) ctx.drawImage(ovl, 0, 0, cv.width, cv.height);
+  if (!busy) status(`${clicks.length} click(s)` + (dirty ? ' - not saved' : '') + (after ? ' - AFTER' : ''));
+}
+function resize() { cv.width = base.width * zoom; cv.height = base.height * zoom; draw(); }
+async function refreshOverlay() {
+  if (!clicks.length) { hasOvl = false; draw(); return; }
+  const r = await post('/overlay', { clicks });
+  const url = URL.createObjectURL(await r.blob());
+  await new Promise(res => { ovl.onload = res; ovl.src = url; });
+  hasOvl = true; draw();
+}
+function setView(v) {
+  if (v === 'after' && !hasPreview) { status('make a preview first'); return; }
+  view = v; $('bBefore').classList.toggle('on', v === 'before'); $('bAfter').classList.toggle('on', v === 'after'); draw();
+}
+function pos(e) { const b = cv.getBoundingClientRect(); return { x: Math.floor((e.clientX - b.left) / zoom), y: Math.floor((e.clientY - b.top) / zoom) }; }
+
+cv.addEventListener('mousedown', async e => {
+  if (e.button !== 0 || busy) return;
+  if (view === 'after') setView('before');
+  const p = pos(e);
+  busy = true; status('marking...');
+  snapshot(); clicks.push({ x: p.x, y: p.y, tol: +$('tol').value }); dirty = true;
+  await refreshOverlay(); busy = false; draw();
+});
+cv.addEventListener('contextmenu', async e => {
+  e.preventDefault();
+  if (busy) return;
+  const p = pos(e);
+  const r = await (await post('/which', { x: p.x, y: p.y, clicks })).json();
+  if (r.index >= 0) { snapshot(); clicks.splice(r.index, 1); dirty = true; await refreshOverlay(); }
+});
+function doUndo() { if (!undo.length) return; clicks = JSON.parse(undo.pop()); dirty = true; refreshOverlay(); }
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT') return;
+  if (e.key === 'v' || e.key === 'V') setView(view === 'before' ? 'after' : 'before');
+  else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) doUndo();
+});
+$('bBefore').onclick = () => setView('before');
+$('bAfter').onclick = () => setView('after');
+$('zoom').onchange = e => { zoom = +e.target.value; resize(); };
+$('bUndo').onclick = doUndo;
+$('bSave').onclick = async () => { await post('/save', { clicks }); dirty = false; draw(); status('saved'); };
+$('bPreview').onclick = async () => {
+  busy = true; status('computing the preview...'); $('bPreview').disabled = true;
+  const r = await (await post('/preview', { clicks })).json();
+  prev.onload = () => { hasPreview = true; busy = false; $('bPreview').disabled = false; setView('after'); status(`preview: ${r.patches} patch(es), ${(r.ms / 1000).toFixed(1)} s`); };
+  prev.src = '/preview.png?t=' + Date.now();
+};
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+base.onload = async () => {
+  const s = await (await fetch('/state')).json();
+  clicks = s.clicks || [];
+  resize(); refreshOverlay();
+};
+base.src = '/base.png';
+</script>
+</body>
+</html>
