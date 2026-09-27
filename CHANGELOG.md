@@ -19,6 +19,17 @@ community mods, kept as it was written.
 
 ### Fixed
 
+- **The imagery is no longer displaced north or south inside each stitched image.** Map tiles are
+  Web Mercator, but the converter read the rows of a stitched image as linear in latitude, which is
+  what the `.aid` declares. GeoConvert does the same. The image was correct at its north and south
+  edges and displaced between them, most at the centre. With the default of 66 tiles per stitched
+  image, that was about 4 m at zoom 17 and 15 m at zoom 16, and it grows four times with each zoom
+  level down. The converter now reads the rows as Web Mercator rows between the same edges. Measured
+  on a 66 × 66 tile block of zoom 17: the error was 3.7 m at the centre before, and 0.00 m after.
+  One large stitched image and 36 small ones now convert to the same tiles, byte for byte. A forum
+  user found the error in zoom 16 imagery against Aerofly's own buildings and runways.
+  `AeroSceneryConvert --linear-rows` gives the old placement. Squares converted by version 2.0 keep
+  the old placement until they are converted again.
 - **This version no longer writes `settings.xml`.** @chrispriv's community mods keep their settings
   in the same file, with API keys and the GeoConvert path that this version does not know. Each
   start of 2.0 saved the file again without them. The settings are now in `settings2.xml`, in the

@@ -96,6 +96,22 @@ namespace AeroScenery.AFS2
         /// </summary>
         public WaterFixField Water { get; set; }
 
+        /// <summary>
+        /// Whether the rows of a stitched image are read as Web Mercator rows. See SourceImage.
+        ///
+        /// Map tiles are Web Mercator, and the .aid declares a linear latitude between the north
+        /// and south edges of the image. Read linearly, the image is correct at its edges and
+        /// displaced to the north or south in between. The error is largest at the centre, and
+        /// it grows with the square of the image height: with 66 tiles of zoom 16 at 50 degrees
+        /// latitude it is about 15 m, and at zoom 17 about 4 m. GeoConvert reads the .aid the same
+        /// linear way.
+        ///
+        /// Off by default, because the byte-for-byte cross-check against the Python reference
+        /// runs with it off. The reference has it too (--mercator), so the two can also be
+        /// compared with it on. The app and AeroSceneryConvert turn it on.
+        /// </summary>
+        public bool MercatorRows { get; set; }
+
         public TtcConverter()
         {
             MaxThreads = 1;
@@ -154,7 +170,7 @@ namespace AeroScenery.AFS2
             var regions = new List<TmcRegion>(doc.Regions);
             regions.Sort((a, b) => a.Level.CompareTo(b.Level));
 
-            var sources = SourceImage.OpenFolder(sourceFolder);
+            var sources = SourceImage.OpenFolder(sourceFolder, MercatorRows);
             if (sources.Count == 0)
             {
                 throw new InvalidDataException("no .aid files in " + sourceFolder);

@@ -7,7 +7,8 @@ and on the other side:
 
     tools/ttc/csharp/sample.ps1 "C:\\...\\g_15_stitch.tmc" 12 1240 1647
 
-Both must print the same two hashes. Resampling is where a georeferencing port goes quietly
+Both must print the same two hashes. Add --mercator here and -Mercator there to check the rows
+the way the app reads them. Resampling is where a georeferencing port goes quietly
 wrong - half a pixel of offset, a floor that should have been a round, latitude treated as
 linear. None of that looks like a bug in the output; it just puts the imagery slightly in the
 wrong place, which is the same class of mistake as the row order that already cost a session.
@@ -31,12 +32,14 @@ def sha(data):
 
 
 def main():
-    if len(sys.argv) < 3:
+    mercator = '--mercator' in sys.argv
+    argv = [a for a in sys.argv if a != '--mercator']
+    if len(argv) < 3:
         print(__doc__)
         return 2
 
-    tmc_path = sys.argv[1]
-    level = int(sys.argv[2])
+    tmc_path = argv[1]
+    level = int(argv[2])
 
     tmc = ct.parse_tmc(tmc_path)
     folder = tmc.get('folder_source_files') or os.path.dirname(os.path.abspath(tmc_path))
@@ -53,12 +56,14 @@ def main():
     ys = sorted({t[1] for t in tiles})
     print(f'  tiles       x {xs[0]}..{xs[-1]}  y {ys[0]}..{ys[-1]}   ({len(xs)} x {len(ys)})')
 
-    if len(sys.argv) >= 5:
-        tx, ty = int(sys.argv[3]), int(sys.argv[4])
+    if len(argv) >= 5:
+        tx, ty = int(argv[3]), int(argv[4])
     else:
         tx, ty = xs[0], ys[-1]      # northernmost row, matching the C# default
 
-    sources = [ct.Source(folder, f) for f in sorted(os.listdir(folder)) if f.endswith('.aid')]
+    sources = [ct.Source(folder, f, mercator)
+               for f in sorted(os.listdir(folder)) if f.endswith('.aid')]
+    print(f'  rows        {"Web Mercator" if mercator else "linear in latitude"}')
     print(f'  sources     {len(sources)}')
     for s in sources:
         print(f'     {s.w} x {s.h}   W {s.lon_w:.6f} E {s.lon_e:.6f} '

@@ -315,8 +315,17 @@ on this. The regions that AeroScenery writes use consecutive levels over the sam
 | `flip_vertical` | Parsed, but not acted on. |
 | `mask`, `coordinate_system` | Ignored. AeroScenery writes an empty `mask` and `lonlat`. |
 
-A source image is thus a plain linear lon/lat raster. The output grid is not linear in latitude, so
-the converter must resample. It uses the nearest source pixel at the centre of each output pixel.
+By the `.aid`, a source image is a plain linear lon/lat raster. But a stitched image of map tiles
+is not linear in latitude: its rows are Web Mercator rows. Read linearly, the image is correct at
+its north and south edges and displaced between them. The error is largest at the centre and grows
+with the square of the image height. With 66 tiles of zoom 17 near 41.5°S it was measured at
+3.7 m, and with zoom 16 it is about 15 m. GeoConvert reads the `.aid` linearly. The app and
+AeroSceneryConvert read the rows as Web Mercator rows between the same two edges, so the `.aid`
+does not change. With Mercator rows, one image of 66 × 66 tiles and 36 images of 11 × 11 tiles
+over the same ground converted to the same files, byte for byte.
+
+The output grid is not linear in latitude either, so the converter must resample. It uses the
+nearest source pixel at the centre of each output pixel.
 When source images overlap, the first `.aid` in file-name order that covers a pixel gives that
 pixel.
 

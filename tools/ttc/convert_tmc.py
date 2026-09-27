@@ -104,15 +104,25 @@ def parse_aid(path):
             'flip_vertical': f.get('flip_vertical', 'false').lower() == 'true'}
 
 
+def mercator_y(lat):
+    """Web Mercator y of a latitude in degrees. Mirror of SourceImage.MercatorY: math, not numpy,
+    and the same order of operations, so that the two give the same doubles."""
+    return math.log(math.tan(math.pi / 4.0 + lat * math.pi / 360.0))
+
+
 class Source:
     """One stitched image plus the lon/lat mapping from its .aid.
 
-    The .aid declares a constant degrees-per-pixel in both axes, so the source is a plain
-    linear lon/lat raster. The output grid is not linear in latitude, which is the whole
+    The .aid declares a constant degrees-per-pixel in both axes, so by the .aid the source is a
+    plain linear lon/lat raster. The output grid is not linear in latitude, which is the whole
     reason resampling is needed rather than a copy.
+
+    A stitched image of map tiles is not linear in latitude either: its rows are Web Mercator
+    rows. With mercator=True the rows are placed as Mercator places them, between the same north
+    and south edges. The app does this; see MercatorRows in TtcConverter.cs.
     """
 
-    def __init__(self, folder, aid_name):
+    def __init__(self, folder, aid_name, mercator=False):
         a = parse_aid(os.path.join(folder, aid_name))
         self.path = os.path.join(folder, a['image'])
         self.a = a
@@ -123,6 +133,18 @@ class Source:
         self.lat_n = a['lat0']
         self.lat_s = a['lat0'] + self.h * a['step_lat']
         self.pixels = None
+        self.mercator = mercator
+        if mercator:
+            self.merc_n = mercator_y(a['lat0'])
+            self.rows_per_merc = self.h / (mercator_y(a['lat0'] + self.h * a['step_lat'])
+                                           - self.merc_n)
+
+    def row_of_lat(self, lats):
+        """Fractional source row for each latitude. Floor it to sample."""
+        if self.mercator:
+            return np.array([(mercator_y(lat) - self.merc_n) * self.rows_per_merc
+                             for lat in lats])
+        return (lats - self.a['lat0']) / self.a['step_lat']
 
     def load(self):
         if self.pixels is None:
@@ -164,7 +186,7 @@ def sample_tile(sources, level, tx, ty, size=TILE_PX):
         if not s.covers(min(lon_w, lon_e), max(lon_w, lon_e), s.lat_s, s.lat_n):
             continue
         px = (lons - s.a['lon0']) / s.a['step_lon']
-        py = (lats - s.a['lat0']) / s.a['step_lat']
+        py = s.row_of_lat(lats)
         cx = np.floor(px).astype(np.int64)
         cy = np.floor(py).astype(np.int64)
         okx = (cx >= 0) & (cx < s.w)
@@ -258,6 +280,8 @@ def main():
     ap.add_argument('--limit', type=int, default=None, help='stop after N deepest-level tiles')
     ap.add_argument('--compare-raw', default=None,
                     help="folder of GeoConvert write_raw_files output to score against")
+    ap.add_argument('--mercator', action='store_true',
+                    help='read the stitched rows as Web Mercator rows, as the app does')
     args = ap.parse_args()
 
     tmc = parse_tmc(args.tmc)
@@ -265,7 +289,8 @@ def main():
     out = args.out or tmc.get('folder_destination_ttc')
     os.makedirs(out, exist_ok=True)
 
-    sources = [Source(folder, f) for f in sorted(os.listdir(folder)) if f.endswith('.aid')]
+    sources = [Source(folder, f, args.mercator)
+               for f in sorted(os.listdir(folder)) if f.endswith('.aid')]
     regions = tmc['regions']
     if args.levels:
         keep = {int(v) for v in args.levels.split(',')}

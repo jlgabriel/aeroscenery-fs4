@@ -22,11 +22,15 @@ internal static class ProbeSampler
 {
     private const int TileSize = 2048;
 
-    public static int Main(string[] args)
+    public static int Main(string[] rawArgs)
     {
+        // --mercator reads the rows as the app does. cross_sample.py takes the same option.
+        bool mercator = Array.IndexOf(rawArgs, "--mercator") >= 0;
+        string[] args = Array.FindAll(rawArgs, a => a != "--mercator");
+
         if (args.Length < 2)
         {
-            Console.Error.WriteLine("usage: ProbeSampler <tmc> <level> [tx ty]");
+            Console.Error.WriteLine("usage: ProbeSampler <tmc> <level> [tx ty] [--mercator]");
             return 2;
         }
 
@@ -62,9 +66,10 @@ internal static class ProbeSampler
         int tx = args.Length >= 4 ? Int32.Parse(args[2]) : x0;
         int ty = args.Length >= 4 ? Int32.Parse(args[3]) : y1 - 1;   // northernmost row
 
-        var sources = SourceImage.OpenFolder(folder);
+        var sources = SourceImage.OpenFolder(folder, mercator);
         try
         {
+            Console.WriteLine("  rows        {0}", mercator ? "Web Mercator" : "linear in latitude");
             Console.WriteLine("  sources     {0}", sources.Count);
             foreach (var s in sources)
             {

@@ -77,6 +77,13 @@ least one tile that is only partly covered — that is the only case that exerci
 mask is what decides where a tile stops and Aerofly's own imagery shows through. On the Santiago
 source, tile (1240, 1647) is fully covered and (1248, 1647) is 12.5% covered; both match.
 
+Run it a second time with `-Mercator` and `--mercator`. That is how the app reads the rows of a
+stitched image: map tiles are Web Mercator, and the `.aid` only gives a linear step between the
+north and south edges. On a 66 × 66 tile source of zoom 17 near 41.5°S, the two sides gave the same
+hashes both ways. There, linear rows put the imagery up to 3.7 m north at the centre of the image.
+With Mercator rows, one 66-tile image and 36 images of 11 tiles converted to the same 136 files,
+byte for byte.
+
 Comparing rather than eyeballing is the point. Half a pixel of offset, a `floor` that should have
 been a round, or latitude treated as linear all produce output that looks completely fine — it is
 just in slightly the wrong place.
@@ -159,7 +166,7 @@ tools/ttc/csharp/convert.ps1 "E:\...\b_17_stitch.tmc" out 14 -BlackIsMissing
 
 Bing serves nothing above zoom 13 more than a few km offshore, so a square reaching out to sea comes
 back mostly pure black and the converter writes that black as scenery. This downloads the same area
-at a zoom Bing *does* have, resamples it onto a linear lat/lon grid so the `.aid` is exact, and drops
+at a zoom Bing *does* have, resamples it onto Web Mercator rows as the converter reads them, and drops
 `z_ocean_<zoom>.png` into the stitched folder. The name is the whole mechanism: `OpenFolder` sorts by
 filename and the sampler lets the first source to reach a pixel keep it, so anything sorting after
 the real stitches is a fallback. `-BlackIsMissing` is what makes black defer to it.

@@ -26,6 +26,9 @@ param(
     # Take the haze and the cloud out of the water, using a field measured by
     # tools/ttc/water_fix.py. Changes output as well, and for the same reason as the two above.
     [string]$WaterFix = '',
+    # Read the stitched rows as Web Mercator rows, as the app does. Changes output. The reference
+    # has the same option: give --mercator to convert_tmc.py too, and the manifests must match.
+    [switch]$Mercator,
     # Where to build ProbeConvert.exe. Two of these running at once compile to the same path and
     # the second one cannot overwrite an exe the first one is running, so a caller that converts
     # several squares in parallel must give each its own.
@@ -77,6 +80,9 @@ if ($WaterFix) {
     if (-not (Test-Path $WaterFix)) { throw "water fix field not found: $WaterFix" }
     $argv += '--water'
     $argv += (Resolve-Path $WaterFix).Path
+}
+if ($Mercator) {
+    $argv += '--mercator'
 }
 
 & $exe @argv

@@ -24,12 +24,17 @@ internal static class ProbeConvert
         // The named options are pulled out first, so they can be given without the optional
         // positional ones in front of them. The positional four came first and are left alone.
         string waterFix = null;
+        bool mercator = false;
         var list = new System.Collections.Generic.List<string>();
         for (int i = 0; i < rawArgs.Length; i++)
         {
             if (rawArgs[i] == "--water" && i + 1 < rawArgs.Length)
             {
                 waterFix = rawArgs[++i];
+            }
+            else if (rawArgs[i] == "--mercator")
+            {
+                mercator = true;
             }
             else
             {
@@ -41,7 +46,7 @@ internal static class ProbeConvert
         if (args.Length < 2)
         {
             Console.Error.WriteLine(
-                "usage: ProbeConvert <tmc> <outdir> [threads] [blackIsMissing] [coastline] [marginNm] [--water <awfx>]");
+                "usage: ProbeConvert <tmc> <outdir> [threads] [blackIsMissing] [coastline] [marginNm] [--water <awfx>] [--mercator]");
             return 2;
         }
 
@@ -85,6 +90,11 @@ internal static class ProbeConvert
             converter.Water = field;
             Console.WriteLine("  water fix   {0} texels, lon {1:0.####}..{2:0.####}, lat {3:0.####}..{4:0.####}",
                 field.Size, field.West, field.East, field.South, field.North);
+        }
+        if (mercator)
+        {
+            converter.MercatorRows = true;
+            Console.WriteLine("  rows        Web Mercator, as the app reads them");
         }
         Console.WriteLine("  threads     {0}{1}", converter.MaxThreads,
             converter.MaxThreads <= 0 ? " (all " + Environment.ProcessorCount + ")" : "");

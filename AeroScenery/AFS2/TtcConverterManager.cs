@@ -83,7 +83,7 @@ namespace AeroScenery.AFS2
 
                     result = await Task.Run(() =>
                     {
-                        var converter = new TtcConverter { MaxThreads = threads, Coast = coast };
+                        var converter = new TtcConverter { MaxThreads = threads, Coast = coast, MercatorRows = true };
                         var progress = new Progress<TtcConversionProgress>(p =>
                             mainForm.UpdateChildTaskProgress(String.Format(
                                 "Converting level {0} - {1} of {2} tiles",

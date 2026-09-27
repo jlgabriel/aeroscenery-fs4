@@ -19,10 +19,10 @@ Measured before this was written: at one coastal point Bing gives (10,41,54) at 
 internal joint should not be visible. The real ocean gradient - darker further out - is in the
 imagery already.
 
-Rows are resampled onto a LINEAR latitude grid rather than left in Web Mercator, because an `.aid`
-can only describe a linear mapping. Over a whole level-9 square the difference is ~50 m; that is
-invisible on open water but it is free to get right, and the same file would be wrong if it were
-ever used over land.
+Rows are spaced as Web Mercator spaces them, between the north and south edges that the `.aid`
+gives. That is how the app and AeroSceneryConvert read every stitched image (MercatorRows in
+TtcConverter.cs). Over a whole level-9 square, rows read the other way would be up to ~50 m out.
+For a converter run with linear rows (`--linear-rows`), this file is wrong by that much.
 """
 import argparse
 import io
@@ -128,15 +128,17 @@ def main():
             mosaic[r:r + TILE, c:c + TILE] = img
     print("mosaic %dx%d, %d tiles had no imagery" % (mosaic.shape[1], mosaic.shape[0], missing))
 
-    # Output grid: linear in lon and lat, so the .aid describes it exactly.
+    # Output grid: linear in lon, and Web Mercator rows between north and south, which is how the
+    # converter reads a source.
     out_w = mosaic.shape[1]
     out_h = mosaic.shape[0]
 
     lons = west + (np.arange(out_w) + 0.5) * (east - west) / out_w
-    lats = north - (np.arange(out_h) + 0.5) * (north - south) / out_h
+    m_north, m_south = merc_y(north), merc_y(south)
+    rows_merc = m_north + (np.arange(out_h) + 0.5) * (m_south - m_north) / out_h
 
     src_x = (lons + 180.0) / 360.0 * n * TILE - tx0 * TILE
-    src_y = np.array([merc_y(v) for v in lats]) * n * TILE - ty0 * TILE
+    src_y = rows_merc * n * TILE - ty0 * TILE
 
     ix = np.clip(np.round(src_x - 0.5).astype(np.int64), 0, mosaic.shape[1] - 1)
     iy = np.clip(np.round(src_y - 0.5).astype(np.int64), 0, mosaic.shape[0] - 1)

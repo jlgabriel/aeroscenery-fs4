@@ -9,15 +9,25 @@ prints what it does, and it exits with a real exit code.
 
 ```
 usage: AeroSceneryConvert <file.tmc> [--out <dir>] [--threads <n>]
-                          [--coast <file>] [--margin-nm <n>] [--quiet]
+                          [--coast <file>] [--margin-nm <n>] [--linear-rows]
+                          [--quiet]
 
   --out <dir>      write tiles here instead of the .tmc's folder_destination_ttc
   --threads <n>    BC1 encoder threads; 0 means all cores. Default is half of them.
   --coast <file>   stop the photoscenery at this hand-drawn coastline
                    (the coastline.txt that Draw Coast on the Map tab saves)
   --margin-nm <n>  how far out to sea to cut, overriding the file. Default 3.
+  --linear-rows    read the image rows as linear in latitude, as version 2.0 and
+                   GeoConvert did
   --quiet          no progress, only errors
 ```
+
+The rows of a stitched image are Web Mercator rows, because the map tiles are. The `.aid` only
+gives the north and south edges and a constant step, which is linear in latitude. Read linearly,
+the imagery is correct at the edges of each stitched image and displaced north or south between
+them: about 4 m at the centre with 66 tiles of zoom 17, and about 15 m with zoom 16. So this
+converter reads the rows as Mercator rows between the same edges. `--linear-rows` gives the old
+placement, for a comparison.
 
 Exit codes: `0` converted, `1` failed, `2` bad arguments.
 

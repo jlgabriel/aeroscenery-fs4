@@ -48,6 +48,7 @@ namespace AeroSceneryConvert
             double marginNm = 0.0;
             int threads = TtcConverter.DefaultThreads();
             bool quiet = false;
+            bool linearRows = false;
             var positional = new List<string>();
 
             try
@@ -79,6 +80,9 @@ namespace AeroSceneryConvert
                         case "--quiet":
                             quiet = true;
                             break;
+                        case "--linear-rows":
+                            linearRows = true;
+                            break;
                         default:
                             positional.Add(a);
                             break;
@@ -101,7 +105,7 @@ namespace AeroSceneryConvert
 
             try
             {
-                return Run(tmcPath, outDir, coastPath, marginNm, threads, quiet);
+                return Run(tmcPath, outDir, coastPath, marginNm, threads, quiet, linearRows);
             }
             catch (Exception ex)
             {
@@ -156,7 +160,7 @@ namespace AeroSceneryConvert
         }
 
         private static int Run(string tmcPath, string outDir, string coastPath, double marginNm,
-            int threads, bool quiet)
+            int threads, bool quiet, bool linearRows)
         {
             if (!File.Exists(tmcPath))
             {
@@ -235,10 +239,14 @@ namespace AeroSceneryConvert
                         coast.Points.Count, coast.Land.ToString().ToLowerInvariant(),
                         coast.MarginKm / 1.852);
                 }
+                if (linearRows)
+                {
+                    Console.WriteLine("  rows        linear in latitude, as in version 2.0 and GeoConvert");
+                }
                 Console.WriteLine();
             }
 
-            var converter = new TtcConverter { MaxThreads = threads, Coast = coast };
+            var converter = new TtcConverter { MaxThreads = threads, Coast = coast, MercatorRows = !linearRows };
             var reporter = quiet ? null : new ConsoleProgress();
 
             TtcConversionResult result = converter.Convert(tmcPath, outDir, reporter);
@@ -349,7 +357,8 @@ namespace AeroSceneryConvert
         private static void Usage(TextWriter w)
         {
             w.WriteLine("usage: AeroSceneryConvert <file.tmc> [--out <dir>] [--threads <n>]");
-            w.WriteLine("                          [--coast <file>] [--margin-nm <n>] [--quiet]");
+            w.WriteLine("                          [--coast <file>] [--margin-nm <n>] [--linear-rows]");
+            w.WriteLine("                          [--quiet]");
             w.WriteLine();
             w.WriteLine("  Converts a .tmc and its stitched images into Aerofly .ttc tiles.");
             w.WriteLine("  With no options it writes to the folder_destination_ttc named in the .tmc,");
@@ -361,6 +370,9 @@ namespace AeroSceneryConvert
             w.WriteLine("                   The file is the one the Map tab's Draw Coast button saves.");
             w.WriteLine("                   Without it, everything a source reaches is kept.");
             w.WriteLine("  --margin-nm <n>  how far out to sea to cut, overriding the file. Default 3.");
+            w.WriteLine("  --linear-rows    read the image rows as linear in latitude, as version 2.0");
+            w.WriteLine("                   and GeoConvert did. Map tiles are Web Mercator, so this");
+            w.WriteLine("                   puts the imagery up to a few metres north or south.");
             w.WriteLine("  --quiet          no progress, only errors");
         }
 

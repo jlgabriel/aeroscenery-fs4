@@ -165,7 +165,8 @@ foreach ($name in $names) {
     # overwrite an exe another square is running.
     $bin = Join-Path $env:TEMP ("aeroscenery_build\" + $name)
     $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $convert,
-           '-Tmc', $tmc, '-OutDir', $out, '-Threads', $Threads, '-WaterFix', $awfx, '-Bin', $bin)
+           '-Tmc', $tmc, '-OutDir', $out, '-Threads', $Threads, '-WaterFix', $awfx, '-Bin', $bin,
+           '-Mercator')   # read the rows as the app does, so a rebuild here matches one in the app
     if ($cut) { $a += @('-Coastline', $cut) }
     $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $a -PassThru `
                        -RedirectStandardOutput $log -RedirectStandardError "$log.err" `

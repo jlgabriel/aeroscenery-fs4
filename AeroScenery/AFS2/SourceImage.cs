@@ -8,9 +8,13 @@ namespace AeroScenery.AFS2
     /// One stitched image plus the lon/lat mapping from its .aid, held as a moving band of rows
     /// rather than as a picture.
     ///
-    /// The .aid declares a constant degrees-per-pixel in both axes, so a source is a plain linear
-    /// lon/lat raster. The output grid is not linear in latitude - see AFS2World - and that
-    /// mismatch is the whole reason resampling is needed rather than a copy.
+    /// The .aid declares a constant degrees-per-pixel in both axes, so by the .aid a source is a
+    /// plain linear lon/lat raster. The output grid is not linear in latitude - see AFS2World - and
+    /// that mismatch is the whole reason resampling is needed rather than a copy.
+    ///
+    /// A stitched image of map tiles is not linear in latitude either. Its rows are Web Mercator
+    /// rows. With mercatorRows, the rows are placed as Mercator places them, between the same
+    /// north and south edges that the .aid gives. Longitude is linear in both cases.
     ///
     /// The band is what makes this affordable. A tile row needs one contiguous run of source rows,
     /// and tile rows are processed north to south, so the run only ever moves one way. Consecutive
@@ -45,7 +49,17 @@ namespace AeroScenery.AFS2
         /// </summary>
         public int Restarts { get; private set; }
 
-        public SourceImage(string aidPath)
+        /// <summary>
+        /// True when rows are read as Web Mercator rows, false when they are read as the .aid
+        /// declares them, linear in latitude. See MercatorRows on TtcConverter.
+        /// </summary>
+        public bool MercatorRows { get; private set; }
+
+        // Mercator y of the north edge, and source rows per unit of Mercator y
+        private double mercatorNorth;
+        private double mercatorRowsPerUnit;
+
+        public SourceImage(string aidPath, bool mercatorRows = false)
         {
             Aid = AIDFile.Parse(aidPath);
             imagePath = Path.Combine(Path.GetDirectoryName(aidPath), Aid.ImageFile);
@@ -74,6 +88,24 @@ namespace AeroScenery.AFS2
             {
                 double t = LatNorth; LatNorth = LatSouth; LatSouth = t;
             }
+
+            MercatorRows = mercatorRows;
+            if (mercatorRows)
+            {
+                // The same edges as the linear case, written in the same order as in
+                // tools/ttc/convert_tmc.py, so that the two give the same doubles.
+                mercatorNorth = MercatorY(Aid.Y);
+                mercatorRowsPerUnit = Height / (MercatorY(Aid.Y + Height * Aid.StepsPerPixelY) - mercatorNorth);
+            }
+        }
+
+        /// <summary>
+        /// Web Mercator y of a latitude in degrees, in radians of the projection. Only differences
+        /// of it are used, so the scale and the sign do not matter.
+        /// </summary>
+        public static double MercatorY(double lat)
+        {
+            return Math.Log(Math.Tan(Math.PI / 4.0 + lat * Math.PI / 360.0));
         }
 
         /// <summary>Fractional source column for a longitude. Floor it to sample.</summary>
@@ -85,6 +117,10 @@ namespace AeroScenery.AFS2
         /// <summary>Fractional source row for a latitude. Floor it to sample.</summary>
         public double RowOfLat(double lat)
         {
+            if (MercatorRows)
+            {
+                return (MercatorY(lat) - mercatorNorth) * mercatorRowsPerUnit;
+            }
             return (lat - Aid.Y) / Aid.StepsPerPixelY;
         }
 
@@ -193,7 +229,7 @@ namespace AeroScenery.AFS2
         /// Opens every .aid in a folder. Order is the folder's, which decides which source wins
         /// where two overlap - the first one to cover a pixel keeps it.
         /// </summary>
-        public static List<SourceImage> OpenFolder(string folder)
+        public static List<SourceImage> OpenFolder(string folder, bool mercatorRows = false)
         {
             var list = new List<SourceImage>();
             var aids = Directory.GetFiles(folder, "*.aid");
@@ -201,7 +237,7 @@ namespace AeroScenery.AFS2
 
             foreach (var aid in aids)
             {
-                list.Add(new SourceImage(aid));
+                list.Add(new SourceImage(aid, mercatorRows));
             }
             return list;
         }

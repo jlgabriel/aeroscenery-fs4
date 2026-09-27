@@ -15,7 +15,9 @@ param(
     [Parameter(Mandatory = $true)][string]$Tmc,
     [Parameter(Mandatory = $true)][int]$Level,
     [int]$TileX = -1,
-    [int]$TileY = -1
+    [int]$TileY = -1,
+    # Read the rows as Web Mercator rows, as the app does. Give --mercator to cross_sample.py too.
+    [switch]$Mercator
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,9 +51,13 @@ $sources += (Join-Path $here 'ProbeSampler.cs')
     $sources
 if ($LASTEXITCODE -ne 0) { throw "compile failed" }
 
+$argv = @($Tmc, $Level)
 if ($TileX -ge 0 -and $TileY -ge 0) {
-    & $exe $Tmc $Level $TileX $TileY
-} else {
-    & $exe $Tmc $Level
+    $argv += $TileX
+    $argv += $TileY
 }
+if ($Mercator) {
+    $argv += '--mercator'
+}
+& $exe @argv
 exit $LASTEXITCODE
