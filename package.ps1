@@ -44,7 +44,9 @@ $exe = Join-Path $binRelease "AeroScenery.exe"
 if (-not (Test-Path $exe)) { throw "No build in $binRelease - run with -Build" }
 
 $fileVersion = (Get-Item $exe).VersionInfo.FileVersion
-$version = ($fileVersion -split '\.')[0..1] -join '.'
+# 2.0.0.0 gives 2.0, and 2.0.1.0 gives 2.0.1
+$parts = $fileVersion -split '\.'
+$version = if ($parts[2] -eq '0') { $parts[0..1] -join '.' } else { $parts[0..2] -join '.' }
 $name = "AeroScenery-$version"
 
 $staging = Join-Path ([System.IO.Path]::GetTempPath()) "aeroscenery-package\$name"

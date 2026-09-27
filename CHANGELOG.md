@@ -7,7 +7,9 @@ community mods, kept as it was written.
 
 ---
 
-## Unreleased
+## 2.0.1 — 2026-09-26
+
+The first feedback from the forum. One new feature and two fixes.
 
 ### Added
 
