@@ -3,6 +3,7 @@ using GMap.NET.WindowsForms;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,6 +40,12 @@ namespace AeroScenery.UI
                 case GridSquareDisplayType.Show:
                     polygon.Fill = new SolidBrush(Color.FromArgb(40, Color.GhostWhite));
                     polygon.Stroke = new Pen(Color.GhostWhite, 1);
+                    break;
+                // Outline only, as for Downloaded. Dashed, so that where a square is both, the
+                // orange line shows through the gaps.
+                case GridSquareDisplayType.Installed:
+                    polygon.Fill = new SolidBrush(Color.FromArgb(0, Color.LimeGreen));
+                    polygon.Stroke = new Pen(Color.LimeGreen, 3) { DashStyle = DashStyle.Dash };
                     break;
 
                 default:

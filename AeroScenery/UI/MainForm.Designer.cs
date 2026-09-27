@@ -55,6 +55,7 @@ namespace AeroScenery
             this.toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
             this.gridSquareSelectionSizeToolstripCombo = new System.Windows.Forms.ToolStripComboBox();
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.showInstalledToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.mainTabControl = new System.Windows.Forms.TabControl();
             this.mapTabPage = new System.Windows.Forms.TabPage();
             this.panel1 = new System.Windows.Forms.Panel();
@@ -213,7 +214,8 @@ namespace AeroScenery
             this.toolStripSeparator7,
             this.toolStripLabel2,
             this.gridSquareSelectionSizeToolstripCombo,
-            this.toolStripSeparator5});
+            this.toolStripSeparator5,
+            this.showInstalledToolStripButton});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Padding = new System.Windows.Forms.Padding(12, 5, 0, 5);
@@ -389,7 +391,18 @@ namespace AeroScenery
             // 
             this.toolStripSeparator5.Name = "toolStripSeparator5";
             this.toolStripSeparator5.Size = new System.Drawing.Size(6, 32);
-            // 
+            //
+            // showInstalledToolStripButton
+            //
+            this.showInstalledToolStripButton.CheckOnClick = true;
+            this.showInstalledToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.showInstalledToolStripButton.Font = new System.Drawing.Font("Segoe UI", 9.75F);
+            this.showInstalledToolStripButton.Name = "showInstalledToolStripButton";
+            this.showInstalledToolStripButton.Size = new System.Drawing.Size(95, 29);
+            this.showInstalledToolStripButton.Text = "Show Installed";
+            this.showInstalledToolStripButton.ToolTipText = "Outline in dashed green the grid squares that have tiles installed in Aerofly, from any package. Orange means downloaded to the working folder.";
+            this.showInstalledToolStripButton.Click += new System.EventHandler(this.showInstalledToolStripButton_Click);
+            //
             // mainTabControl
             // 
             this.mainTabControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -1279,6 +1292,7 @@ namespace AeroScenery
         private System.Windows.Forms.ToolStripLabel toolStripLabel2;
         private System.Windows.Forms.ToolStripComboBox gridSquareSelectionSizeToolstripCombo;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripButton showInstalledToolStripButton;
         private System.Windows.Forms.Button autoSelectAFSLevelsButton;
         private System.Windows.Forms.ToolStripSplitButton mapTypeToolStripDropDown;
         private System.Windows.Forms.ToolStripMenuItem hybridToolStripMenuItem;

@@ -122,6 +122,7 @@
     <Compile Include="AFS2\AFS2Grid.cs" />
     <Compile Include="AFS2\AFS2GridSquare.cs" />
     <Compile Include="AFS2\DownloadedGridSquareFinder.cs" />
+    <Compile Include="AFS2\InstalledGridSquareFinder.cs" />
     <Compile Include="AFS2\AFSFileGenerator.cs" />
     <Compile Include="AFS2\AFSFileGeneratorProgress.cs" />
     <Compile Include="AFS2\AFSLevel.cs" />

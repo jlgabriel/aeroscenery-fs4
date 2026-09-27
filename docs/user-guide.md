@@ -46,7 +46,11 @@ at 9: a level 9 square is about 65 km across, and it is the unit the app works i
 - **The status bar shows how many squares are selected.** Check it before you start. A selection
   stays after a run finishes, so the squares of the last run are still selected when you add new
   ones.
-- Squares that already have a folder in the working folder show as downloaded.
+- Squares that already have a folder in the working folder show as downloaded, with an orange
+  outline.
+- **Show Installed** adds a dashed green outline to each square that has tiles installed in
+  Aerofly, from any package under `addons\scenery`. The squares stay on the map after you delete
+  their working folders. A square with only an orange outline was downloaded but is not installed.
 - **Map Type** changes the base map. Click the button to switch between satellite and a drawn map,
   or use the arrow for the full list. The base map is only for looking; it does not change the
   imagery that is downloaded.

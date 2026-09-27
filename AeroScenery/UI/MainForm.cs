@@ -47,6 +47,10 @@ namespace AeroScenery
         private List<DownloadThreadProgressControl> downloadThreadProgressControls;
         private AeroScenery.Common.Point mapMouseDownLocation;
         private DownloadedGridSquareFinder downloadedGridSquareFinder;
+        private InstalledGridSquareFinder installedGridSquareFinder;
+
+        // The dashed green squares of Show Installed, by level 9 grid square name
+        private readonly Dictionary<string, GMapOverlay> installedGridSquareOverlays = new Dictionary<string, GMapOverlay>();
         private GMapOverlay activeGridSquareOverlay;
         private bool actionsRunning;
         private readonly ILog log = LogManager.GetLogger("AeroScenery");
@@ -103,6 +107,7 @@ namespace AeroScenery
 
             this.afs2Grid = new AFS2Grid();
             this.downloadedGridSquareFinder = new DownloadedGridSquareFinder();
+            this.installedGridSquareFinder = new InstalledGridSquareFinder();
             this.gMapControlManager = new GMapControlManager();
             this.sceneryInstaller = new SceneryInstaller();
             this.fileManager = new FileManager();
@@ -255,6 +260,9 @@ namespace AeroScenery
             this.UpdateUIFromSettings();
 
             this.LoadDownloadedGridSquares();
+
+            this.showInstalledToolStripButton.Checked = settings.ShowInstalledGridSquares == true;
+            this.LoadInstalledGridSquares();
 
             this.processCheckBoxListEvents = true;
 
@@ -769,6 +777,16 @@ namespace AeroScenery
                     this.toolStripDownloadedLabel.Text = "Downloaded";
                     toolStripDownloadedLabel.Image = imageList1.Images[1];
                 }
+
+                // Known only while Show Installed is on
+                var level9GridSquare = this.SelectedAFS2GridSquare.Level == 9
+                    ? this.SelectedAFS2GridSquare
+                    : this.afs2Grid.GetGridSquareAtLatLon(this.SelectedAFS2GridSquare.GetCenter().Lat, this.SelectedAFS2GridSquare.GetCenter().Lng, 9);
+
+                if (this.installedGridSquareOverlays.ContainsKey(level9GridSquare.Name))
+                {
+                    this.toolStripDownloadedLabel.Text += ", Installed";
+                }
             }
 
             if (this.SelectedAFS2GridSquare != null)
@@ -818,6 +836,78 @@ namespace AeroScenery
 
             this.DownloadedAFS2GridSquares[afs2GridSqure.Name] = gridSquareViewModel;
 
+        }
+
+        /// <summary>
+        /// Draws the grid squares that have tiles installed in Aerofly, or removes them when Show
+        /// Installed is off. The scan reads every tile name, about a second for a hundred thousand
+        /// tiles, so it runs off the UI thread.
+        /// </summary>
+        public async void LoadInstalledGridSquares()
+        {
+            this.ClearInstalledGridSquares();
+
+            if (!this.showInstalledToolStripButton.Checked)
+            {
+                return;
+            }
+
+            var afsUserDirectory = DirectoryHelper.FindAFSUserDirectory(AeroSceneryManager.Instance.Settings);
+            var gridSquares = await Task.Run(() => this.installedGridSquareFinder.FindAll(afsUserDirectory));
+
+            // Turned off again while the scan ran
+            if (!this.showInstalledToolStripButton.Checked)
+            {
+                return;
+            }
+
+            foreach (var gridSquare in gridSquares)
+            {
+                this.AddInstalledGridSquare(gridSquare);
+            }
+
+            this.UpdateToolStrip();
+        }
+
+        /// <summary>
+        /// Draws one installed square, if Show Installed is on. Pass a level 9 square: tiles are
+        /// installed into the folder of the level 9 square that holds them.
+        /// </summary>
+        public void AddInstalledGridSquare(AFS2GridSquare level9GridSquare)
+        {
+            if (!this.showInstalledToolStripButton.Checked || this.installedGridSquareOverlays.ContainsKey(level9GridSquare.Name))
+            {
+                return;
+            }
+
+            this.installedGridSquareOverlays[level9GridSquare.Name] =
+                this.gMapControlManager.DrawGridSquare(level9GridSquare, GridSquareDisplayType.Installed);
+        }
+
+        private void ClearInstalledGridSquares()
+        {
+            foreach (var overlay in this.installedGridSquareOverlays.Values)
+            {
+                mainMap.Overlays.Remove(overlay);
+            }
+
+            // Removing an overlay does not repaint the map
+            if (this.installedGridSquareOverlays.Count > 0)
+            {
+                mainMap.Refresh();
+            }
+
+            this.installedGridSquareOverlays.Clear();
+            this.UpdateToolStrip();
+        }
+
+        private void showInstalledToolStripButton_Click(object sender, EventArgs e)
+        {
+            var settings = AeroSceneryManager.Instance.Settings;
+            settings.ShowInstalledGridSquares = this.showInstalledToolStripButton.Checked;
+            AeroSceneryManager.Instance.SaveSettings();
+
+            this.LoadInstalledGridSquares();
         }
 
         private void settingsButton_Click(object sender, EventArgs e)
@@ -2146,6 +2236,16 @@ namespace AeroScenery
                         fileOperationProgressForm.FileOperationTask = installTask;
                         await fileOperationProgressForm.DoTaskAsync();
                         fileOperationProgressForm = null;
+
+                        // The installer writes into the folder of the level 9 square, and an empty
+                        // build writes nothing
+                        if (ttcFiles.Count > 0)
+                        {
+                            this.AddInstalledGridSquare(afs2GridSquare.Level == 9
+                                ? afs2GridSquare
+                                : this.afs2Grid.GetGridSquareAtLatLon(afs2GridSquare.GetCenter().Lat, afs2GridSquare.GetCenter().Lng, 9));
+                            this.UpdateToolStrip();
+                        }
                     }
                 }
 

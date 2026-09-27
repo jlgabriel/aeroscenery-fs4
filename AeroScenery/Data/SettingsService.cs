@@ -194,6 +194,7 @@ namespace AeroScenery.Data
             //#MOD_l
             log.Info(String.Format("MapControlLastImageryMapType: {0}", settings.MapControlLastImageryMapType));
             log.Info(String.Format("MapControlLastDrawnMapType: {0}", settings.MapControlLastDrawnMapType));
+            log.Info(String.Format("ShowInstalledGridSquares: {0}", settings.ShowInstalledGridSquares));
 
             log.Info(String.Format("MapControlLastZoomLevel: {0}", settings.MapControlLastZoomLevel));
             log.Info(String.Format("MapControlLastX: {0}", settings.MapControlLastX));
@@ -350,6 +351,8 @@ namespace AeroScenery.Data
             if (settings.MapControlLastDrawnMapType == null)
                 settings.MapControlLastDrawnMapType = "GoogleStandard";
 
+            if (settings.ShowInstalledGridSquares == null)
+                settings.ShowInstalledGridSquares = true;
 
             if (settings.ShrinkTMCGridSquareCoords == null)
                 settings.ShrinkTMCGridSquareCoords = 0.01;

@@ -112,6 +112,8 @@ namespace AeroScenery.Common
         // provider names - MapControlLastMapType above stays the provider name it always was.
         public string MapControlLastImageryMapType { get; set; }
         public string MapControlLastDrawnMapType { get; set; }
+        // Show Installed on the map toolbar: draw the grid squares that have tiles in Aerofly
+        public bool? ShowInstalledGridSquares { get; set; }
         public double? ShrinkTMCGridSquareCoords { get; set; }
         public string AFS2UserDirectory { get; set; }
 

@@ -12,6 +12,7 @@ namespace AeroScenery.UI
         Active,
         Downloaded,
         //#MOD_g
-        Show
+        Show,
+        Installed
     }
 }

@@ -104,6 +104,9 @@ There is no database. The grid squares shown as downloaded are the folders in th
 Aerofly names a square after its level and the hex of its south west corner, so the folder name
 gives back the coordinates. To forget a square, delete its folder.
 
+**Show Installed** on the map toolbar outlines the squares that have tiles in Aerofly, from any
+package. The name of each installed `.ttc` gives its position, so this also needs no database.
+
 A finished conversion leaves its `.ttc` files in `<grid square>\<source>\<zoom>-geoconvert-ttc\`:
 1 + 4 + 16 + 64 = 85 for levels 9–12, and 1,365 for levels 9–14. That count, not the progress
 label, is what says it worked. A square cut at the coastline has fewer tiles, plus `_mask.ttc`

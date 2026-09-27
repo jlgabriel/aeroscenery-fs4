@@ -9,6 +9,14 @@ community mods, kept as it was written.
 
 ## Unreleased
 
+### Added
+
+- **Show Installed** on the map toolbar. It outlines in dashed green each grid square that has tiles
+  installed in Aerofly, from any package under `addons\scenery` or `scenery\images`, and also from
+  other tools. The app reads the names of the installed `.ttc` files, so there is still no
+  database. The squares stay on the map after you delete their working folders. When a selected
+  square is installed, the map toolbar says so. The setting is on by default.
+
 ### Fixed
 
 - **This version no longer writes `settings.xml`.** @chrispriv's community mods keep their settings
