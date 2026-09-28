@@ -395,10 +395,19 @@ namespace AeroScenery
                         var downloadThreadProgress = new Progress<DownloadThreadProgress>();
                         downloadThreadProgress.ProgressChanged += DownloadThreadProgress_ProgressChanged;
 
+                        // Which tiles Bing has no imagery for are worth filling from a lower zoom.
+                        // Off the main thread: the field takes a few seconds to build.
+                        Func<ImageTile, bool> fillWanted = null;
+                        if (settings.OrthophotoSource == OrthophotoSource.Bing && (settings.FillMissingTiles ?? true))
+                        {
+                            fillWanted = await Task.Run(() => this.FillWantedFor(afs2GridSquare));
+                        }
+
                         // Send the image tiles to the download manager
                         //#MOD_g
                         //await downloadManager.DownloadImageTiles(settings.OrthophotoSource.Value, imageTiles, downloadThreadProgress, tileDownloadDirectory, orthophotoSourceInstance);
-                        await downloadManager.DownloadImageTiles(settings.OrthophotoSource.Value, imageTiles, downloadThreadProgress, tileDownloadDirectory, orthophotoSourceInstance, Convert.ToInt16(settings.SimultaneousDownloads));
+                        await downloadManager.DownloadImageTiles(settings.OrthophotoSource.Value, imageTiles, downloadThreadProgress, tileDownloadDirectory, orthophotoSourceInstance, Convert.ToInt16(settings.SimultaneousDownloads),
+                            fillWanted);
 
                         // Only finalise if we weren't cancelled
                         if (this.mainForm.ActionsRunning)
@@ -578,6 +587,60 @@ namespace AeroScenery
             }
 
             return coast;
+        }
+
+        /// <summary>
+        /// Which tiles with no imagery the download fills from a lower zoom, for one grid square:
+        /// the tiles that reach inside the coastline cut. The rest are cut away, so filling them
+        /// only costs time - 91% of the fill of the first Balearic build. Null, to fill every tile,
+        /// when the square is not cut: then all of it shows.
+        ///
+        /// The test is the converter's own field and rule, so it cannot leave out a tile the
+        /// converter keeps. RangeOver bounds the field over the tile exactly.
+        /// </summary>
+        private Func<ImageTile, bool> FillWantedFor(AFS2GridSquare afs2GridSquare)
+        {
+            if (!(this.settings.CutAtCoastline ?? false) || !File.Exists(this.CoastlinePath))
+            {
+                return null;
+            }
+
+            Coastline coast;
+            try
+            {
+                coast = Coastline.Load(this.CoastlinePath);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            if (coast.IsEmpty)
+            {
+                return null;
+            }
+
+            string why;
+            var part = coast.ForSquare(afs2GridSquare.WestLongitude, afs2GridSquare.EastLongitude,
+                afs2GridSquare.SouthLatitude, afs2GridSquare.NorthLatitude, out why);
+            if (part == null)
+            {
+                return null;
+            }
+
+            // A little wider than the square, because the tiles to download reach past its edges.
+            const double Pad = 0.03;
+            var field = CoastlineField.Build(part,
+                afs2GridSquare.WestLongitude - Pad, afs2GridSquare.EastLongitude + Pad,
+                afs2GridSquare.SouthLatitude - Pad, afs2GridSquare.NorthLatitude + Pad);
+            double margin = part.MarginKm;
+
+            return tile =>
+            {
+                double lo, hi;
+                field.RangeOver(tile.WestLongitude, tile.EastLongitude, tile.SouthLatitude, tile.NorthLatitude, out lo, out hi);
+                return lo <= margin;
+            };
         }
 
         /// <summary>

@@ -29,6 +29,11 @@ features that path does not use, and replaces the conversion step with a convert
   converter stops the photoscenery a set distance out to sea (3 NM by default), along the shape of
   the coast. Aerofly's own sea shows beyond it. Since 2.1, you can also draw islands, and the cut
   goes all round each one.
+- **No black sea near the coast (Bing).** Bing's sharpest imagery often stops a short way out to
+  sea. Where a tile is missing at the zoom you chose, the app fills it from a lower zoom of Bing,
+  enlarged, so the sea inside the cut has imagery all the way out. With a cut, only the tiles
+  inside it are filled, so it costs little time. The setting *Fill missing tiles* turns it off.
+  Other sources still leave missing tiles black.
 - **Install as an Aerofly add-on.** Scenery goes to
   `Documents\Aerofly FS 4\addons\scenery\<package>\images\<grid square>\`, the layout Aerofly
   add-ons use. Each area can be its own package, and an install never touches another area.

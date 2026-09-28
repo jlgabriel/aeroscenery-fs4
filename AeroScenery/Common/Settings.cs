@@ -94,6 +94,13 @@ namespace AeroScenery.Common
         /// </summary>
         public bool? CutAtCoastline { get; set; }
 
+        /// <summary>
+        /// Whether the download fills each Bing tile that has no imagery from a lower zoom. With a
+        /// coastline cut, only the tiles inside the cut. Off, such tiles stay black, as in 2.0.1.
+        /// See DownloadManager.FillFromLowerZoom.
+        /// </summary>
+        public bool? FillMissingTiles { get; set; }
+
 
         public string LinzApiKey { get; set; }
 

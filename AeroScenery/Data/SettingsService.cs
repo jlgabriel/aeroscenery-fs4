@@ -178,6 +178,7 @@ namespace AeroScenery.Data
             log.Info(String.Format("RunConverter: {0}", settings.RunConverter));
             log.Info(String.Format("ConverterThreads: {0}", settings.ConverterThreads));
             log.Info(String.Format("CutAtCoastline: {0}", settings.CutAtCoastline));
+            log.Info(String.Format("FillMissingTiles: {0}", settings.FillMissingTiles));
             //#MOD_g
 
             log.Info(String.Format("DeleteStitchedImageTiles: {0}", settings.DeleteStitchedImageTiles));
@@ -314,6 +315,10 @@ namespace AeroScenery.Data
             // the request for it.
             if (settings.CutAtCoastline == null)
                 settings.CutAtCoastline = true;
+
+            // On by default: without it, a tile Bing has no imagery for is black in the scenery.
+            if (settings.FillMissingTiles == null)
+                settings.FillMissingTiles = true;
 
 
 

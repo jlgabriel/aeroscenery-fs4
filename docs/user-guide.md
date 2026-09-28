@@ -32,6 +32,7 @@ was there.
 | Shrink TMC grid squares by | Moves the edges of each square in by this many degrees before conversion, so that a square does not spill into its neighbours. Keep the default. |
 | Converter threads | Threads for the tile encoder. *Automatic* uses half the machine, so the computer stays usable during a run. |
 | Cut at the coastline | Stops the photoscenery at the coastline you draw on the map. See section 5. It does nothing until you draw a line. |
+| Fill missing tiles | With Bing, gives each tile that Bing has no imagery for at your zoom the matching part of a lower zoom, enlarged. See section 4. On by default. Off, those tiles stay black. |
 
 **Image Source Accounts tab** holds the API keys for the sources that need one (Linz, Mapbox,
 HERE). **Image Processing** can change brightness, contrast, colour and sharpness before the
@@ -81,7 +82,8 @@ use the imagery.
 Under **Actions**, *Run Default Actions* runs every step in order:
 
 1. **Download Image Tiles** — fetches the imagery. Tiles already on disk are not fetched again, so
-   a run that stops can simply be started again.
+   a run that stops can simply be started again. With Bing, tiles that have no imagery at your
+   zoom are filled from a lower zoom; see *Missing tiles* below.
 2. **Stitch Image Tiles** — joins the tiles into large images.
 3. **Generate AID / TMC Files** — writes the files that tell the converter where the images are
    and which levels to build.
@@ -101,6 +103,33 @@ was there: the tiles the new build no longer makes are removed from its install 
 **How to tell that a square worked:** count the `.ttc` files in
 `<grid square>\<source>\<zoom>-geoconvert-ttc\`. Levels 9–12 give 85, levels 9–14 give 1,365. A
 square cut at the coastline has fewer, plus `_mask.ttc` files along the cut.
+
+### Missing tiles
+
+An imagery source does not have its sharpest zoom everywhere. Bing's zoom 17 often stops a short
+way out to sea, sometimes at the shoreline, and in remote areas it can have gaps on land too. A
+tile with no imagery used to stay black in the scenery.
+
+With **Fill missing tiles** on (Settings, Converter tab, on by default) and Bing as the source,
+the download fills those tiles from a lower zoom of Bing, enlarged:
+
+- **Which tiles.** If the square is cut at a coastline, only the tiles inside the cut; the rest
+  are cut away anyway, so filling them would only cost time. If the square is not cut, every
+  missing tile.
+- **From which zoom.** One zoom for the whole square: the sharpest one that has imagery for nearly
+  all the tiles to fill. Bing's zoom levels are different photographs, often with a different
+  colour of sea, so tiles filled from different levels would show as a patchwork.
+- **Black in a lower tile.** A lower tile can exist and still be black where it has no imagery.
+  Those pixels come from the next zoom down.
+- **Only once.** A filled tile is saved like any other tile, so the next run does not fill it
+  again.
+
+At sea the enlarged imagery looks the same as the sharp imagery. The log says, per square, how
+many tiles were filled and from which zoom, for example `Filling 1636 tiles from zoom 13`.
+
+It works with Bing only: it finds the lower tile from Bing's tile names. With other sources a
+missing tile still stays black. Turn it off if you prefer the missing tiles black, for example
+to see where the source has no imagery.
 
 ## 5. Stop the photoscenery at the coast
 
@@ -177,6 +206,10 @@ coast or inside an island.
   mainland in that square is unknown, so a cut at the island alone could remove it. To build
   islands far from the coast you drew, such as an island in another country, use a separate
   working folder. Each working folder has its own coastline file.
+
+With Bing, the sea inside the cut has imagery all the way out, even where Bing's sharpest zoom
+stops near the coast: the download fills those tiles from a lower zoom (see *Missing tiles* in
+section 4). With other sources, a tile missing inside the cut stays black.
 
 A square that lies wholly past the cut produces no tiles at all. That is a result, not an error:
 there is no photoscenery in that square. The installer leaves its install folder alone and says so

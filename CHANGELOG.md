@@ -23,6 +23,19 @@ The coastline cut now works for islands.
   the land side of the coast or inside an island. Where two islands, or an island and the coast,
   are closer than twice the cut distance, their cuts join into one. Islands drawn overlapping stay
   land where they overlap.
+- **Missing Bing tiles are filled from a lower zoom.** Bing's imagery at a high zoom often stops a
+  short way out to sea, and the stitcher left each missing tile black. Off the Balearic Islands,
+  zoom 17 stopped inside the 3 NM of the cut: round Menorca, 46% of the area inside the cut had no
+  tile. Bing's lower zooms had imagery there. Now, after the download, each tile Bing has no
+  imagery for gets the matching part of a tile up to five zoom levels lower, enlarged. With a
+  coastline cut, only the tiles inside the cut are filled; the rest are cut away anyway. All the
+  tiles of a square come from one zoom level, the finest that has imagery for nearly all of them,
+  because Bing's zoom levels are different acquisitions and mixing them made a patchwork of
+  blues. Where a lower tile is black because it has no imagery there, the next level down fills
+  those pixels. A tile that failed for another reason is not filled; the next run asks for it
+  again. The log says which zoom was used and how many tiles were filled. The setting *Fill
+  missing tiles*, on the Converter tab and on by default, turns it off. Bing only: the fill finds the lower tile from Bing's
+  quadkey. With other sources, a missing tile stays black.
 - **Hold Space to move the map while you draw**, as in image editors. Release Space to draw again.
 - **An island left half drawn carries on.** A large island takes more than one sitting. When the
   app starts and the last island is still open, **Island** is down, and the next stroke continues

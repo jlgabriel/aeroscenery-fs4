@@ -62,6 +62,8 @@
             this.converterThreadsLabel = new System.Windows.Forms.Label();
             this.converterThreadsHintLabel = new System.Windows.Forms.Label();
             this.cutAtCoastlineLabel = new System.Windows.Forms.Label();
+            this.fillMissingTilesLabel = new System.Windows.Forms.Label();
+            this.fillMissingTilesCheckBox = new System.Windows.Forms.CheckBox();
             this.cutAtCoastlineCheckBox = new System.Windows.Forms.CheckBox();
             this.label11 = new System.Windows.Forms.Label();
             this.shrinkTMCGridSquaresTextBox = new System.Windows.Forms.TextBox();
@@ -445,6 +447,8 @@
             this.groupBox4.Controls.Add(this.converterThreadsHintLabel);
             this.groupBox4.Controls.Add(this.cutAtCoastlineLabel);
             this.groupBox4.Controls.Add(this.cutAtCoastlineCheckBox);
+            this.groupBox4.Controls.Add(this.fillMissingTilesLabel);
+            this.groupBox4.Controls.Add(this.fillMissingTilesCheckBox);
             this.groupBox4.Controls.Add(this.label11);
             this.groupBox4.Controls.Add(this.shrinkTMCGridSquaresTextBox);
             this.groupBox4.Controls.Add(this.label15);
@@ -515,6 +519,27 @@
             this.cutAtCoastlineCheckBox.TabIndex = 22;
             this.cutAtCoastlineCheckBox.Text = "(Uses the line drawn with Draw Coast on the Map tab)";
             this.cutAtCoastlineCheckBox.UseVisualStyleBackColor = true;
+            //
+            // fillMissingTilesLabel
+            //
+            this.fillMissingTilesLabel.AutoSize = true;
+            this.fillMissingTilesLabel.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.fillMissingTilesLabel.Location = new System.Drawing.Point(20, 176);
+            this.fillMissingTilesLabel.Name = "fillMissingTilesLabel";
+            this.fillMissingTilesLabel.Size = new System.Drawing.Size(128, 17);
+            this.fillMissingTilesLabel.TabIndex = 23;
+            this.fillMissingTilesLabel.Text = "Fill missing tiles";
+            //
+            // fillMissingTilesCheckBox
+            //
+            this.fillMissingTilesCheckBox.AutoSize = true;
+            this.fillMissingTilesCheckBox.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.fillMissingTilesCheckBox.Location = new System.Drawing.Point(216, 175);
+            this.fillMissingTilesCheckBox.Name = "fillMissingTilesCheckBox";
+            this.fillMissingTilesCheckBox.Size = new System.Drawing.Size(390, 21);
+            this.fillMissingTilesCheckBox.TabIndex = 24;
+            this.fillMissingTilesCheckBox.Text = "(Bing: from a lower zoom, where it has no imagery)";
+            this.fillMissingTilesCheckBox.UseVisualStyleBackColor = true;
             // 
             // label11
             // 
@@ -1182,6 +1207,8 @@
         private System.Windows.Forms.Label converterThreadsHintLabel;
         private System.Windows.Forms.Label cutAtCoastlineLabel;
         private System.Windows.Forms.CheckBox cutAtCoastlineCheckBox;
+        private System.Windows.Forms.Label fillMissingTilesLabel;
+        private System.Windows.Forms.CheckBox fillMissingTilesCheckBox;
         private System.Windows.Forms.GroupBox groupBox6;
         private System.Windows.Forms.LinkLabel linkLabel1;
         private System.Windows.Forms.TextBox linzKeyTextBox;
