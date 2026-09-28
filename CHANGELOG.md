@@ -7,7 +7,7 @@ community mods, kept as it was written.
 
 ---
 
-## 2.1 — unreleased
+## 2.1 — 2026-09-27
 
 The coastline cut now works for islands.
 
@@ -22,7 +22,7 @@ The coastline cut now works for islands.
   coastline file can hold any number of islands, and a coast as well: a point is land when it is on
   the land side of the coast or inside an island. Where two islands, or an island and the coast,
   are closer than twice the cut distance, their cuts join into one. Islands drawn overlapping stay
-  land where they overlap.
+  land where they overlap. Built and flown on Mallorca, Menorca and Cabrera, 7 grid squares.
 - **Missing Bing tiles are filled from a lower zoom.** Bing's imagery at a high zoom often stops a
   short way out to sea, and the stitcher left each missing tile black. Off the Balearic Islands,
   zoom 17 stopped inside the 3 NM of the cut: round Menorca, 46% of the area inside the cut had no
