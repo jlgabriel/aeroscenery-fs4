@@ -7,6 +7,36 @@ community mods, kept as it was written.
 
 ---
 
+## 2.2 — 2026-09-29
+
+Lakes: cut the photoscenery out where the imagery of a lake is bad.
+
+### Added
+
+- **Lakes.** On some lakes the source imagery is at its worst: blocks of different colour with
+  straight edges, or a bright block of haze. Aerofly's own imagery of the lake is coarser, but water
+  has no detail to lose. Now **Lake** on the Map tab draws a lake: a closed ring, drawn as an island
+  is. The photoscenery is cut out inside the ring, and Aerofly's own lake shows there. The cut is
+  the drawn line itself, with no margin, so the edge is where you put it. A lake needs no coast: it
+  is cut in every grid square it reaches, also with *Cut at the coastline* off. The lakes save
+  themselves to `<Working Folder>\lakes.txt`, apart from the coastline, with backups in
+  `lakes-backups\`. The setting *Cut out the lakes*, on the Converter tab and on by default, turns
+  the cut off. Built and flown on Lago Colico, Chile. See section 6 of the user guide.
+- **A lake stroke keeps what you draw.** When you release the button, a lake stroke is thinned to
+  one screen pixel at the zoom you draw at. The toolbar says *too coarse* above 10 m/px while
+  **Lake** is down. A coast stroke is thinned to 200 m as before: its cut is 3 NM out to sea.
+- **`--lakes`** in AeroSceneryConvert, and **`-Lakes`** in `tools\ttc\csharp\convert.ps1` and
+  `tools\ttc\water_convert.ps1`. With the last one, a square with a lake keeps its water fix.
+
+### Fixed
+
+- **A change of the working folder no longer mixes the coastlines of two folders.** The drawn lines
+  were loaded only when the app started. After a change of the working folder in Settings, the
+  lines of the old folder stayed on the map, and the next stroke saved them over the coastline of
+  the new folder. Now OK in Settings loads the coastline and the lakes of the new folder.
+
+---
+
 ## 2.1 — 2026-09-27
 
 The coastline cut now works for islands.

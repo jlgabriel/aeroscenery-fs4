@@ -82,7 +82,7 @@ namespace AeroScenery
             afsFileGenerator = new AFSFileGenerator();
 
             imageTiles = null;
-            version = "2.1";
+            version = "2.2";
         }
 
         public Settings Settings
