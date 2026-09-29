@@ -58,6 +58,11 @@ namespace AeroScenery.AFS2
     /// as on a mainland. An ISLAND is a closed ring with the land inside. The coast can be absent,
     /// and there can be any number of islands. A point is land when it is landward of the coast
     /// or inside an island, and the margin is measured to the nearest line of either kind.
+    ///
+    /// A file of LAKES (IsLakes, lakes.txt) uses the same class for the opposite job. It holds only
+    /// closed rings, and Islands lists them. The photoscenery is cut out INSIDE each ring, so
+    /// Aerofly draws its own imagery on the lake. The cut is the drawn line itself: the margin is
+    /// 0. Water has no detail to lose, and Bing's water is where its imagery is worst.
     /// </summary>
     public class Coastline
     {
@@ -65,6 +70,14 @@ namespace AeroScenery.AFS2
 
         /// <summary>The island number of a stroke that belongs to the coast.</summary>
         public const int CoastStroke = -1;
+
+        /// <summary>
+        /// How near the end of a lake must come to its start for the lake to be closed, in km.
+        /// An island uses its margin for this, but a lake has a margin of 0. Half a kilometre is
+        /// easy to hit by hand at the zoom the editor asks for, and the straight join is on the
+        /// map, where it can be seen.
+        /// </summary>
+        public const double LakeCloseKm = 0.5;
 
         /// <summary>One drag of the mouse, and the line it belongs to.</summary>
         private sealed class Stroke
@@ -129,8 +142,8 @@ namespace AeroScenery.AFS2
 
         /// <summary>
         /// The island of the last stroke drawn, if it is still open: the join from its last point
-        /// back to its first is longer than the margin, which is where the toolbar shows GAP. Else
-        /// CoastStroke. A finished island closes within the margin, or GAP would say otherwise.
+        /// back to its first is longer than CloseKm, which is where the toolbar shows GAP. Else
+        /// CoastStroke. A finished island closes within CloseKm, or GAP would say otherwise.
         /// </summary>
         public int OpenIsland()
         {
@@ -154,8 +167,29 @@ namespace AeroScenery.AFS2
             {
                 return island;
             }
-            return PointDistanceKm(ring[ring.Count - 1], ring[0]) > MarginKm ? island : CoastStroke;
+            return PointDistanceKm(ring[ring.Count - 1], ring[0]) > CloseKm ? island : CoastStroke;
         }
+
+        /// <summary>
+        /// True for a file of lakes: rings only, the photoscenery cut out inside each one, at a
+        /// margin of 0. See NewLakes and LoadLakes.
+        /// </summary>
+        public bool IsLakes { get; private set; }
+
+        /// <summary>An empty file of lakes.</summary>
+        public static Coastline NewLakes()
+        {
+            var c = new Coastline();
+            c.IsLakes = true;
+            c.MarginKm = 0.0;
+            return c;
+        }
+
+        /// <summary>
+        /// How near the last point of a ring must come to its first for the ring to be closed:
+        /// the margin for an island, LakeCloseKm for a lake.
+        /// </summary>
+        public double CloseKm { get { return IsLakes ? LakeCloseKm : MarginKm; } }
 
         /// <summary>Which side of the line is land. East for a west-facing coast like Chile's.</summary>
         public LandSide Land { get; set; }
@@ -507,6 +541,7 @@ namespace AeroScenery.AFS2
             }
 
             var part = new Coastline();
+            part.IsLakes = IsLakes;
             part.Land = Land;
             part.MarginKm = MarginKm;
 
@@ -1240,14 +1275,23 @@ namespace AeroScenery.AFS2
         {
             using (var w = new StreamWriter(path, false))
             {
-                w.WriteLine("# aeroscenery coastline - lat lon, one point per line, blank line ends a stroke");
-                w.WriteLine("# land {0}", Land);
-                w.WriteLine("# margin_km {0}", MarginKm.ToString("R", CultureInfo.InvariantCulture));
+                if (IsLakes)
+                {
+                    // No land side and no margin: a lake has neither. The marker is "# lake N".
+                    w.WriteLine("# aeroscenery lakes - lat lon, one point per line, blank line ends a stroke");
+                }
+                else
+                {
+                    w.WriteLine("# aeroscenery coastline - lat lon, one point per line, blank line ends a stroke");
+                    w.WriteLine("# land {0}", Land);
+                    w.WriteLine("# margin_km {0}", MarginKm.ToString("R", CultureInfo.InvariantCulture));
+                }
 
                 // The strokes stay in the order they were drawn, because undo takes the last one.
                 // A marker goes before a stroke only where the line changes: "# island N" before
                 // the strokes of island N, "# coast" before the strokes of the coast. A file
                 // without markers is all coast, which is every file written before islands.
+                string ringMarker = IsLakes ? "lake" : "island";
                 int line = CoastStroke;
                 foreach (var s in strokes)
                 {
@@ -1260,7 +1304,7 @@ namespace AeroScenery.AFS2
                         }
                         else
                         {
-                            w.WriteLine("# island {0}", line);
+                            w.WriteLine("# {0} {1}", ringMarker, line);
                         }
                     }
 
@@ -1277,12 +1321,27 @@ namespace AeroScenery.AFS2
 
         public static Coastline Load(string path)
         {
-            var c = new Coastline();
+            return Load(path, false);
+        }
+
+        /// <summary>
+        /// Loads a file of lakes. Its rings are marked "# lake N". The margin stays 0 whatever the
+        /// file says, because the cut of a lake is the drawn line.
+        /// </summary>
+        public static Coastline LoadLakes(string path)
+        {
+            return Load(path, true);
+        }
+
+        private static Coastline Load(string path, bool lakes)
+        {
+            var c = lakes ? NewLakes() : new Coastline();
             if (!File.Exists(path))
             {
                 return c;
             }
 
+            string ringMarker = lakes ? "lake" : "island";
             Stroke stroke = null;
             int island = CoastStroke;
             foreach (string raw in File.ReadAllLines(path))
@@ -1303,7 +1362,7 @@ namespace AeroScenery.AFS2
                         island = CoastStroke;
                         stroke = null;
                     }
-                    else if (meta.Length == 2 && meta[0] == "island"
+                    else if (meta.Length == 2 && meta[0] == ringMarker
                              && Int32.TryParse(meta[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out n)
                              && n >= 0)
                     {
@@ -1315,7 +1374,7 @@ namespace AeroScenery.AFS2
                         try { c.Land = (LandSide)Enum.Parse(typeof(LandSide), meta[1], true); }
                         catch (ArgumentException) { }
                     }
-                    else if (meta.Length == 2 && meta[0] == "margin_km")
+                    else if (meta.Length == 2 && meta[0] == "margin_km" && !lakes)
                     {
                         double km;
                         if (Double.TryParse(meta[1], NumberStyles.Float,

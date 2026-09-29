@@ -63,6 +63,7 @@ namespace AeroScenery
         // value is not taken for the user choosing it.
         private bool showingCoastlineLand;
         private bool coastlineSaveWarned;
+        private bool loadingLines;
 
         private SceneryInstaller sceneryInstaller;
         private FileManager fileManager;
@@ -913,6 +914,22 @@ namespace AeroScenery
         private void settingsButton_Click(object sender, EventArgs e)
         {
             var settingsForm = new SettingsForm();
+
+            // The coastline and the lakes belong to the working folder. When OK changes it, the
+            // lines of the new folder are loaded, so no stroke can save the old ones into it.
+            string workingBefore = AeroSceneryManager.Instance.Settings.WorkingDirectory;
+            settingsForm.VisibleChanged += (s, a) =>
+            {
+                string workingNow = AeroSceneryManager.Instance.Settings.WorkingDirectory;
+                if (!settingsForm.Visible
+                    && !String.Equals(workingBefore, workingNow, StringComparison.OrdinalIgnoreCase))
+                {
+                    log.Info(String.Format("Working folder changed to {0}: loading its coastline and lakes", workingNow));
+                    workingBefore = workingNow;
+                    LoadLines();
+                }
+            };
+
             settingsForm.Show();
             if (settingsForm.StartPosition == FormStartPosition.CenterParent)
             {
@@ -948,8 +965,28 @@ namespace AeroScenery
         private void coastlineIslandToolStripButton_Click(object sender, EventArgs e)
         {
             this.coastlineEditor.DrawingIsland = this.coastlineIslandToolStripButton.Checked;
+            this.coastlineLakeToolStripButton.Checked = this.coastlineEditor.DrawingLake;
             this.mainMap.Focus();
             CoastlineEditor_Changed(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Down: the strokes drawn make one lake. Up again: the lake is closed. As Island, but the
+        /// photoscenery is cut out inside the ring, on the line itself. Island and Lake are never
+        /// down together.
+        /// </summary>
+        private void coastlineLakeToolStripButton_Click(object sender, EventArgs e)
+        {
+            this.coastlineEditor.DrawingLake = this.coastlineLakeToolStripButton.Checked;
+            this.coastlineIslandToolStripButton.Checked = this.coastlineEditor.DrawingIsland;
+            this.mainMap.Focus();
+            CoastlineEditor_Changed(this, EventArgs.Empty);
+        }
+
+        /// <summary>The lakes of the package. See AeroSceneryManager.LakesPath.</summary>
+        private string LakesPath()
+        {
+            return AeroSceneryManager.Instance.LakesPath;
         }
 
         private void coastlineUndoToolStripButton_Click(object sender, EventArgs e)
@@ -965,6 +1002,12 @@ namespace AeroScenery
                 Directory.CreateDirectory(AeroSceneryManager.Instance.Settings.WorkingDirectory);
                 this.coastlineEditor.Save(CoastlinePath());
                 this.statusStripLabel1.Text = String.Format("Coastline saved to {0}", CoastlinePath());
+
+                if (this.coastlineEditor.Lakes.StrokeCount > 0 || File.Exists(LakesPath()))
+                {
+                    this.coastlineEditor.SaveLakes(LakesPath());
+                    this.statusStripLabel1.Text += String.Format(", lakes to {0}", LakesPath());
+                }
             }
             catch (Exception ex)
             {
@@ -1061,16 +1104,38 @@ namespace AeroScenery
         /// </summary>
         private void CoastlineEditor_Changed(object sender, EventArgs e)
         {
+            // LoadLines saves once, when both files are in. See there.
+            if (this.loadingLines)
+            {
+                return;
+            }
+
             // Drawing pans the map by moving Position directly, which is not a drag, so the zoom
             // readout would otherwise go stale exactly while it is being used.
             UpdateCoastlineZoomLabel();
 
-            string drawing = this.coastlineEditor.DrawingIsland ? "   DRAWING AN ISLAND" : "";
+            string drawing = this.coastlineEditor.DrawingIsland ? "   DRAWING AN ISLAND"
+                           : this.coastlineEditor.DrawingLake ? "   DRAWING A LAKE" : "";
+
+            var lakes = this.coastlineEditor.Lakes;
 
             // Strokes, not coast points: a file of islands alone has no coast points and must
             // still be saved.
-            if (this.coastlineEditor.Line.StrokeCount == 0)
+            if (this.coastlineEditor.Line.StrokeCount == 0 && lakes.StrokeCount == 0)
             {
+                // The last lake undone is still a change to save. There is no lakes file to
+                // write until a lake has been drawn.
+                if (File.Exists(LakesPath()))
+                {
+                    try
+                    {
+                        this.coastlineEditor.SaveLakes(LakesPath());
+                    }
+                    catch (Exception ex)
+                    {
+                        log.Error("Could not autosave the lakes", ex);
+                    }
+                }
                 this.coastlineLabel.Text = "no coastline" + drawing;
                 return;
             }
@@ -1082,7 +1147,14 @@ namespace AeroScenery
             try
             {
                 Directory.CreateDirectory(AeroSceneryManager.Instance.Settings.WorkingDirectory);
-                this.coastlineEditor.Save(CoastlinePath());
+                if (this.coastlineEditor.Line.StrokeCount > 0)
+                {
+                    this.coastlineEditor.Save(CoastlinePath());
+                }
+                if (lakes.StrokeCount > 0 || File.Exists(LakesPath()))
+                {
+                    this.coastlineEditor.SaveLakes(LakesPath());
+                }
             }
             catch (Exception ex)
             {
@@ -1110,10 +1182,16 @@ namespace AeroScenery
             //
             // An island counts the join that closes it, so while one is being drawn round the GAP
             // shows how far there is still to go.
-            this.coastlineLabel.Text = String.Format("{0} coast points, {1} islands, {2} strokes, cut at {3:0.#} NM - {4}{5}{6}",
-                                                     points, islands, this.coastlineEditor.Line.StrokeCount,
+            //
+            // A lake closes within Coastline.LakeCloseKm, not within the margin: its cut is the line.
+            double lakeGapKm = lakes.LongestJoinKm;
+
+            this.coastlineLabel.Text = String.Format("{0} coast points, {1} islands, {2} lakes, {3} strokes, cut at {4:0.#} NM - {5}{6}{7}{8}",
+                                                     points, islands, lakes.Islands.Count,
+                                                     this.coastlineEditor.Line.StrokeCount + lakes.StrokeCount,
                                                      margin / 1.852, state,
                                                      gapKm > margin ? String.Format("   GAP {0:0.#} km", gapKm) : "",
+                                                     lakeGapKm > Coastline.LakeCloseKm ? String.Format("   LAKE GAP {0:0.#} km", lakeGapKm) : "",
                                                      drawing);
         }
 
@@ -2092,7 +2170,9 @@ namespace AeroScenery
             this.coastlineZoomLabel.Text = String.Format(
                 metresPerPixel >= 100.0 ? "zoom {0}  -  {1:0} m/px{2}" : "zoom {0}  -  {1:0.#} m/px{2}",
                 (int)this.mainMap.Zoom, metresPerPixel,
-                metresPerPixel > CoastlineEditor.CoarsestMetresPerPixel ? "  too coarse" : "");
+                metresPerPixel > (this.coastlineEditor != null
+                    ? this.coastlineEditor.CoarsestMetresPerPixelNow
+                    : CoastlineEditor.CoarsestMetresPerPixel) ? "  too coarse" : "");
         }
 
         //#MOD_l
@@ -2427,7 +2507,8 @@ namespace AeroScenery
 
         /// <summary>
         /// Copies the coastline aside before it is loaded, into coastline-backups beside it, with
-        /// the date and time in the name. The newest copies are kept.
+        /// the date and time in the name. The newest copies are kept. The lakes go the same way,
+        /// into lakes-backups: the folder and the copies take the name of the file.
         ///
         /// The line saves itself on every stroke and on every undo, so a wrong undo is on disk at
         /// once, and a large island takes more than one sitting. A copy from the start of each
@@ -2438,24 +2519,25 @@ namespace AeroScenery
         {
             try
             {
-                string dir = Path.Combine(Path.GetDirectoryName(path), "coastline-backups");
+                string name = Path.GetFileNameWithoutExtension(path);
+                string dir = Path.Combine(Path.GetDirectoryName(path), name + "-backups");
                 Directory.CreateDirectory(dir);
 
-                string copy = Path.Combine(dir, String.Format("coastline-{0:yyyyMMdd-HHmmss}.txt", DateTime.Now));
+                string copy = Path.Combine(dir, String.Format("{0}-{1:yyyyMMdd-HHmmss}.txt", name, DateTime.Now));
                 File.Copy(path, copy, true);
 
-                var old = Directory.GetFiles(dir, "coastline-*.txt");
+                var old = Directory.GetFiles(dir, name + "-*.txt");
                 Array.Sort(old, StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < old.Length - CoastlineBackups; i++)
                 {
                     File.Delete(old[i]);
                 }
 
-                log.Info(String.Format("Coastline backed up to {0}", copy));
+                log.Info(String.Format("{0} backed up to {1}", Path.GetFileName(path), copy));
             }
             catch (Exception ex)
             {
-                log.Error("Could not back up the coastline", ex);
+                log.Error(String.Format("Could not back up {0}", path), ex);
             }
         }
 
@@ -2465,29 +2547,72 @@ namespace AeroScenery
             // Here rather than in the constructor: the settings the path comes from are not
             // populated until Initialize has run, and a coastline that quietly failed to come
             // back would look exactly like one that was never saved.
+            LoadLines();
+        }
+
+        /// <summary>
+        /// Loads the coastline and the lakes of the working folder, each backed up first. Called
+        /// when the app starts, and again when the working folder changes in Settings.
+        ///
+        /// The editor is emptied first. Without that, the lines of the old folder stayed in it,
+        /// and the first stroke or click of Draw Coast saved them over the files of the new one.
+        ///
+        /// Nothing is saved while the two files load. Each load raises Changed, and the autosave
+        /// it runs writes both files. After the coastline and before the lakes, that wrote an
+        /// empty lakes file over the one about to be loaded.
+        /// </summary>
+        private void LoadLines()
+        {
+            this.loadingLines = true;
             try
             {
-                string path = CoastlinePath();
-                if (File.Exists(path))
+                this.coastlineEditor.Reset();
+
+                try
                 {
-                    BackUpCoastline(path);
-                    this.coastlineEditor.Load(path);
-                    this.coastlineMarginToolStripTextBox.Text =
-                        (this.coastlineEditor.MarginKm / 1.852).ToString("0.#");
-                    this.ShowCoastlineLand();
-                    // Down if the file ends in an island that is still open, so drawing carries on.
-                    this.coastlineIslandToolStripButton.Checked = this.coastlineEditor.DrawingIsland;
-                    CoastlineEditor_Changed(this, EventArgs.Empty);
-                    log.Info(String.Format("Loaded a coastline of {0} points and {1} islands from {2}",
-                                           this.coastlineEditor.Line.Points.Count,
-                                           this.coastlineEditor.Line.Islands.Count, path));
+                    string path = CoastlinePath();
+                    if (File.Exists(path))
+                    {
+                        BackUpCoastline(path);
+                        this.coastlineEditor.Load(path);
+                        log.Info(String.Format("Loaded a coastline of {0} points and {1} islands from {2}",
+                                               this.coastlineEditor.Line.Points.Count,
+                                               this.coastlineEditor.Line.Islands.Count, path));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Error("Could not load the coastline", ex);
+                }
+
+                try
+                {
+                    string path = LakesPath();
+                    if (File.Exists(path))
+                    {
+                        BackUpCoastline(path);
+                        this.coastlineEditor.LoadLakes(path);
+                        log.Info(String.Format("Loaded {0} lakes from {1}",
+                                               this.coastlineEditor.Lakes.Islands.Count, path));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Error("Could not load the lakes", ex);
                 }
             }
-            catch (Exception ex)
+            finally
             {
-                log.Error("Could not load the coastline", ex);
+                this.loadingLines = false;
             }
 
+            this.coastlineMarginToolStripTextBox.Text =
+                (this.coastlineEditor.MarginKm / 1.852).ToString("0.#");
+            this.ShowCoastlineLand();
+            // Down if the file ends in an island or a lake that is still open, so drawing carries on.
+            this.coastlineIslandToolStripButton.Checked = this.coastlineEditor.DrawingIsland;
+            this.coastlineLakeToolStripButton.Checked = this.coastlineEditor.DrawingLake;
+            CoastlineEditor_Changed(this, EventArgs.Empty);
             UpdateCoastlineZoomLabel();
         }
     }

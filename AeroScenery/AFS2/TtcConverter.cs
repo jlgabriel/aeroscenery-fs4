@@ -88,6 +88,16 @@ namespace AeroScenery.AFS2
         public double CoastTexelKm { get; set; }
 
         /// <summary>
+        /// Where photoscenery is cut out on a lake, or null to cut out nothing. A file of lakes,
+        /// from Coastline.LoadLakes. It can hold lakes far from the square: only the lakes that
+        /// come near the square are rasterised, and a square no lake comes near converts as if
+        /// there were none.
+        ///
+        /// Null by default, for the same reason Coast is.
+        /// </summary>
+        public Coastline Lakes { get; set; }
+
+        /// <summary>
         /// A correction for the haze and the cloud Bing carries over water, or null to take the
         /// source as it comes. See WaterFixField, and tools/ttc/water_fix.py which measures it.
         ///
@@ -202,6 +212,21 @@ namespace AeroScenery.AFS2
                         CoastTexelKm);
                 }
 
+                // The lakes, over the same box, and only those near it.
+                CoastlineField lakeField = null;
+                if (Lakes != null && !Lakes.IsEmpty)
+                {
+                    double west, east, south, north;
+                    CoastFieldBox(levels, out west, out east, out south, out north);
+                    string why;
+                    Coastline near = Lakes.ForSquare(west, east, south, north, out why);
+                    if (near != null)
+                    {
+                        lakeField = CoastlineField.Build(near, west, east, south, north,
+                            CoastTexelKm);
+                    }
+                }
+
                 var progressState = new TtcConversionProgress
                 {
                     Level = deepest,
@@ -219,7 +244,7 @@ namespace AeroScenery.AFS2
                         cancellationToken.ThrowIfCancellationRequested();
 
                         TileSampler.Sample(sources, deepest, tx, ty, rgb, covered, TileSize,
-                            true, BlackIsMissing, coastField, Water);
+                            true, BlackIsMissing, coastField, Water, lakeField);
                         EmitTile(byLevel, shallowest, deepest, tx, ty, rgb, covered,
                             outputDirectory, result, MaxThreads);
 

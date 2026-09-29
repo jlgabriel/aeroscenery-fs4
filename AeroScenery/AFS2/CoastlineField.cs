@@ -32,6 +32,10 @@ namespace AeroScenery.AFS2
     ///
     /// WinForms-free, like Coastline, and for the same reason: this runs inside the converter with
     /// no UI anywhere in sight.
+    ///
+    /// A file of lakes gives a field of the same kind. Its rings count as "land", so the value is
+    /// negative inside a lake, and its margin is 0. So for a lake field IsCovered means "inside a
+    /// lake", which is where the photoscenery is cut out. See TileSampler.Sample.
     /// </summary>
     public sealed class CoastlineField
     {

@@ -64,7 +64,9 @@ AeroSceneryConvert "<working folder>\<grid square>\<source>\<zoom>-stitched\<sou
     --coast "<working folder>\coastline.txt"
 ```
 
-The options are `--out`, `--threads`, `--coast`, `--margin-nm` and `--quiet`. Exit code 0 means
+The options are `--out`, `--threads`, `--coast`, `--margin-nm`, `--lakes` and `--quiet`.
+`--lakes "<working folder>\lakes.txt"` cuts the photoscenery out inside the drawn lakes, as the app
+does (user guide, section 6). It is safe for any square: only the lakes near it count. Exit code 0 means
 converted, 1 means failed, 2 means bad arguments. The full description and two rules for `--coast`
 are in [AeroSceneryConvert/README.md](../AeroSceneryConvert/README.md).
 
@@ -207,7 +209,7 @@ can install each square when it is complete. `-Working` is required, and so is `
 ```powershell
 tools\ttc\water_convert.ps1 -Plan "<working folder>\water_plan.txt" `
     -Working "<working folder>" -Threads <n> -Parallel 2 `
-    -Coastline "<working folder>\coastline.txt" `
+    -Coastline "<working folder>\coastline.txt" -Lakes "<working folder>\lakes.txt" `
     -Install -Package "<Aerofly user folder>\addons\scenery\<package>\images"
 ```
 
@@ -257,7 +259,7 @@ The reference imagery comes from Bing. As with the app, you are responsible for 
   narrow river mouth does not join a lake to the sea, and the labels are then grown back.
 - `tools\ttc\csharp\convert.ps1` compiles the converter and runs it on one `.tmc`. Its arguments
   are `<tmc> <output folder>`, then `-Threads` (default 1), `-Coastline`, `-MarginNm`, `-WaterFix`,
-  `-BlackIsMissing` and `-Bin`. It does not empty the output folder. Do that first.
+  `-Lakes`, `-BlackIsMissing`, `-Mercator` and `-Bin`. It does not empty the output folder. Do that first.
 
 The field is applied by `AeroScenery\AFS2\WaterFixField.cs`. The app and `AeroSceneryConvert`
 never apply a field.

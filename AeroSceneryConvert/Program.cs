@@ -45,6 +45,7 @@ namespace AeroSceneryConvert
             string tmcPath = null;
             string outDir = null;
             string coastPath = null;
+            string lakesPath = null;
             double marginNm = 0.0;
             int threads = TtcConverter.DefaultThreads();
             bool quiet = false;
@@ -72,6 +73,9 @@ namespace AeroSceneryConvert
                             break;
                         case "--coast":
                             coastPath = Next(args, ref i, "--coast");
+                            break;
+                        case "--lakes":
+                            lakesPath = Next(args, ref i, "--lakes");
                             break;
                         case "--margin-nm":
                             marginNm = Double.Parse(Next(args, ref i, "--margin-nm"),
@@ -105,7 +109,7 @@ namespace AeroSceneryConvert
 
             try
             {
-                return Run(tmcPath, outDir, coastPath, marginNm, threads, quiet, linearRows);
+                return Run(tmcPath, outDir, coastPath, lakesPath, marginNm, threads, quiet, linearRows);
             }
             catch (Exception ex)
             {
@@ -159,8 +163,8 @@ namespace AeroSceneryConvert
             return args[++i];
         }
 
-        private static int Run(string tmcPath, string outDir, string coastPath, double marginNm,
-            int threads, bool quiet, bool linearRows)
+        private static int Run(string tmcPath, string outDir, string coastPath, string lakesPath,
+            double marginNm, int threads, bool quiet, bool linearRows)
         {
             if (!File.Exists(tmcPath))
             {
@@ -223,6 +227,25 @@ namespace AeroSceneryConvert
                 Console.Error.WriteLine("note: --margin-nm does nothing without --coast.");
             }
 
+            // The lakes need no stretch rule and no margin: the ring says exactly what to cut,
+            // and the converter uses only the lakes that come near the square.
+            Coastline lakes = null;
+            if (!String.IsNullOrEmpty(lakesPath))
+            {
+                if (!File.Exists(lakesPath))
+                {
+                    Console.Error.WriteLine("error: lakes not found: " + lakesPath);
+                    return ExitError;
+                }
+
+                lakes = Coastline.LoadLakes(lakesPath);
+                if (lakes.IsEmpty)
+                {
+                    Console.Error.WriteLine("error: " + lakesPath + " has no lake in it");
+                    return ExitError;
+                }
+            }
+
             if (!quiet)
             {
                 Console.WriteLine("AeroSceneryConvert {0}", Version());
@@ -239,6 +262,10 @@ namespace AeroSceneryConvert
                         coast.Points.Count, coast.Land.ToString().ToLowerInvariant(),
                         coast.Islands.Count, coast.MarginKm / 1.852);
                 }
+                if (lakes != null)
+                {
+                    Console.WriteLine("  lakes       {0} lake(s), cut out on the drawn line", lakes.Islands.Count);
+                }
                 if (linearRows)
                 {
                     Console.WriteLine("  rows        linear in latitude, as in version 2.0 and GeoConvert");
@@ -246,7 +273,7 @@ namespace AeroSceneryConvert
                 Console.WriteLine();
             }
 
-            var converter = new TtcConverter { MaxThreads = threads, Coast = coast, MercatorRows = !linearRows };
+            var converter = new TtcConverter { MaxThreads = threads, Coast = coast, Lakes = lakes, MercatorRows = !linearRows };
             var reporter = quiet ? null : new ConsoleProgress();
 
             TtcConversionResult result = converter.Convert(tmcPath, outDir, reporter);
@@ -270,7 +297,7 @@ namespace AeroSceneryConvert
                 // past the cut has no photoscenery in it, and the right output is nothing at all.
                 // Measured on map_09_4c80_6700, which is 3.56 GB of installed black 20 km
                 // offshore - the converter reached that verdict in 30 s without opening a source.
-                if (coast != null)
+                if (coast != null || lakes != null)
                 {
                     Console.WriteLine();
                     Console.WriteLine("  The whole square lies past the cut. There is no photoscenery");
@@ -357,7 +384,8 @@ namespace AeroSceneryConvert
         private static void Usage(TextWriter w)
         {
             w.WriteLine("usage: AeroSceneryConvert <file.tmc> [--out <dir>] [--threads <n>]");
-            w.WriteLine("                          [--coast <file>] [--margin-nm <n>] [--linear-rows]");
+            w.WriteLine("                          [--coast <file>] [--margin-nm <n>] [--lakes <file>]");
+            w.WriteLine("                          [--linear-rows]");
             w.WriteLine("                          [--quiet]");
             w.WriteLine();
             w.WriteLine("  Converts a .tmc and its stitched images into Aerofly .ttc tiles.");
@@ -370,6 +398,9 @@ namespace AeroSceneryConvert
             w.WriteLine("                   The file is the one the Map tab's Draw Coast button saves.");
             w.WriteLine("                   Without it, everything a source reaches is kept.");
             w.WriteLine("  --margin-nm <n>  how far out to sea to cut, overriding the file. Default 3.");
+            w.WriteLine("  --lakes <file>   cut the photoscenery out inside these lakes, on the drawn");
+            w.WriteLine("                   line, so Aerofly shows its own imagery there. The file is");
+            w.WriteLine("                   the lakes.txt the Map tab's Lake button saves.");
             w.WriteLine("  --linear-rows    read the image rows as linear in latitude, as version 2.0");
             w.WriteLine("                   and GeoConvert did. Map tiles are Web Mercator, so this");
             w.WriteLine("                   puts the imagery up to a few metres north or south.");

@@ -215,7 +215,51 @@ A square that lies wholly past the cut produces no tiles at all. That is a resul
 there is no photoscenery in that square. The installer leaves its install folder alone and says so
 in the log; delete that folder yourself.
 
-## 6. Tidy up
+## 6. Cut out a lake
+
+Aerial imagery is often worst on water. On some lakes the source has blocks of different colour,
+with straight edges, or a bright block of haze. Aerofly's own imagery of the same lake is much
+coarser, but water has no detail to lose. So on such a lake it can look better to cut your
+photoscenery out and let Aerofly's own lake show.
+
+A lake is a closed ring, as an island is. But the cut is **the line you draw**, not a distance
+from it. Inside the ring there is no photoscenery. Outside it, nothing changes.
+
+**To draw a lake:**
+
+![A lake drawn with Lake. The drawn waterline (blue) is a closed ring, and it is also the cut. Inside it, Bing's water has blocks of different colour; Aerofly's own lake will show there instead.](images/draw-lake.png)
+
+1. Click **Draw Coast**, then click **Lake**, so that it stays down. The toolbar shows
+   *DRAWING A LAKE*.
+2. Zoom in until the toolbar shows **10 m/px or finer**. A lake needs a finer line than a coast,
+   because there is no margin: the line is the cut. The toolbar warns *too coarse* below that.
+3. Drag along the lake's waterline, all the way round. As for an island, you can use many strokes,
+   and the last point joins the first. Until the ring closes to within 0.5 km, the toolbar shows
+   `LAKE GAP n km`.
+4. Click **Lake** again to close the lake.
+5. For the next lake, click **Lake** again and draw it.
+
+The lake shows in blue on the map. There is no red line for it, because its line is its cut.
+**Ctrl+Z** or **Undo** removes the last stroke of the lake while **Lake** is down.
+
+The lakes save themselves to `<Working Folder>\lakes.txt`, apart from the coastline. They are
+backed up to `<Working Folder>\lakes-backups\` in the same way. The setting *Cut out the lakes* on
+the **Converter** tab turns the cut on or off. It is on by default, and it does nothing until you
+draw a lake.
+
+**Rules that matter:**
+
+- **Draw only the lakes that need it.** A lake where the source is good is better left as it is.
+- **You control the edge with the line.** The cut is exactly on it. If Aerofly's own shore shows as
+  a blurred band inside yours, draw the line a little further out into the water.
+- **A lake needs no coast.** It is cut in every square it reaches, also far from any coastline, and
+  also with *Cut at the coastline* off.
+- **An island in a lake is cut out too.** To keep it, take the line in to the island, round it, and
+  back out the same way, in one stroke.
+- **Keep *Write Images With Mask* at *Yes*.** Without masks, the cut part of the tiles along the
+  shore is black.
+
+## 7. Tidy up
 
 - **Delete Files** on the grid square toolbar removes a square's downloaded tiles, stitched images
   or converted tiles, and never touches the installed scenery.

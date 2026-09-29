@@ -282,6 +282,9 @@ class CoastTest
         IslandTests();
 
         Console.WriteLine();
+        LakeTests();
+
+        Console.WriteLine();
         Console.WriteLine(failed == 0 ? "ALL PASSED" : failed + " FAILED");
         Environment.Exit(failed == 0 ? 0 : 1);
     }
@@ -862,5 +865,133 @@ class CoastTest
               sw.Elapsed.TotalSeconds < 30.0,
               String.Format("{0} x {1} texels in {2:F1} s", square.Width, square.Height,
                             sw.Elapsed.TotalSeconds));
+    }
+
+    // =========================================================================================
+    // Lakes - rings in their own file, cut out on the drawn line
+    // =========================================================================================
+
+    static void LakeTests()
+    {
+        // A lake about the size of Colico, drawn in two strokes, and a small one near it.
+        var colico = Blob(-39.07, -72.0, 4.0, 200, true, 0.3);
+        var pond = Blob(-39.07, -72.0 + 9.0 / Coastline.KmPerDegLon(-39.07), 0.6, 30, false, 0.0);
+
+        var lakes = Coastline.NewLakes();
+        DrawIsland(lakes, colico, 2);
+        DrawIsland(lakes, pond, 1);
+
+        Check("a file of lakes: two rings, no coast, a margin of 0",
+              lakes.IsLakes && lakes.Islands.Count == 2 && !lakes.HasCoast && lakes.MarginKm == 0.0,
+              String.Format("{0} lakes, margin {1} km", lakes.Islands.Count, lakes.MarginKm));
+
+        // ---- save and load: its own marker, and the margin stays 0 ----
+        string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "aeroscenery_lakes_test.txt");
+        lakes.Save(path);
+        string text = System.IO.File.ReadAllText(path);
+        var back = Coastline.LoadLakes(path);
+        bool same = back.IsLakes && back.MarginKm == 0.0
+                 && back.Islands.Count == lakes.Islands.Count && back.StrokeCount == lakes.StrokeCount;
+        for (int r = 0; same && r < lakes.Islands.Count; r++)
+        {
+            same = back.Islands[r].Count == lakes.Islands[r].Count;
+            for (int i = 0; same && i < lakes.Islands[r].Count; i++)
+            {
+                same = back.Islands[r][i].Lat == lakes.Islands[r][i].Lat
+                    && back.Islands[r][i].Lon == lakes.Islands[r][i].Lon;
+            }
+        }
+        Check("lakes save and load round trip exactly", same,
+              String.Format("{0} lakes, {1} strokes", back.Islands.Count, back.StrokeCount));
+        Check("the lakes file marks its rings \"# lake N\", with no margin and no island",
+              text.Contains("# lake 0") && text.Contains("# lake 1")
+              && !text.Contains("# island") && !text.Contains("margin_km"), null);
+
+        // A coastline file is not a lakes file: its islands stay islands, and its margin stays.
+        var coastFile = new Coastline();
+        coastFile.MarginKm = 5.556;
+        DrawIsland(coastFile, pond, 1);
+        string coastPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "aeroscenery_lakes_coast_test.txt");
+        coastFile.Save(coastPath);
+        var asLakes = Coastline.LoadLakes(coastPath);
+        Check("a lakes load ignores the margin and the island markers of a coastline file",
+              asLakes.MarginKm == 0.0 && asLakes.Islands.Count == 0,
+              String.Format("margin {0} km, {1} lakes", asLakes.MarginKm, asLakes.Islands.Count));
+
+        // ---- closing: within LakeCloseKm, not within the margin ----
+        var open = Coastline.NewLakes();
+        open.StartIsland();
+        open.BeginStroke();
+        for (int i = 0; i < 180; i++) open.AddPoint(colico[i].Lat, colico[i].Lon);
+        open.EndStroke(0.0);
+        open.EndIsland();
+        open.StartIsland();
+        int carriedOn = open.DrawingIsland;
+
+        var shut = Coastline.NewLakes();
+        shut.StartIsland();
+        shut.BeginStroke();
+        for (int i = 0; i < 198; i++) shut.AddPoint(colico[i].Lat, colico[i].Lon);
+        shut.EndStroke(0.0);
+        shut.EndIsland();
+        shut.StartIsland();
+        Check("Lake again carries on a lake left open, and starts a new one after a closed one",
+              carriedOn == 0 && shut.DrawingIsland == 1,
+              String.Format("open: lake {0} ({1:F2} km short), closed: lake {2} ({3:F2} km short)",
+                            carriedOn, open.LongestJoinKm, shut.DrawingIsland, shut.LongestJoinKm));
+
+        // ---- the field: IsCovered means "inside a lake", and the cut is the drawn line ----
+        double west = -72.0 - 8.0 / Coastline.KmPerDegLon(-39.07);
+        double east = -72.0 + 12.0 / Coastline.KmPerDegLon(-39.07);
+        double south = -39.07 - 8.0 / Coastline.KmPerDegLat;
+        double north = -39.07 + 8.0 / Coastline.KmPerDegLat;
+        var field = CoastlineField.Build(lakes, west, east, south, north);
+
+        var rnd = new Random(11);
+        int wrong = 0, tested = 0;
+        for (int i = 0; i < 20000; i++)
+        {
+            double lat = south + rnd.NextDouble() * (north - south);
+            double lon = west + rnd.NextDouble() * (east - west);
+            if (lakes.DistanceKm(lat, lon) < 0.02)
+            {
+                continue;
+            }
+            bool inLake = InsideRing(colico, lat, lon) || InsideRing(pond, lat, lon);
+            if (field.IsCovered(lat, lon) != inLake) wrong++;
+            tested++;
+        }
+        Check("a lake field is covered exactly inside the lakes", wrong == 0 && tested > 19000,
+              String.Format("{0} wrong of {1} tested", wrong, tested));
+
+        double onLine = 0.0;
+        foreach (var ring in lakes.Islands)
+        {
+            foreach (var p in ring)
+            {
+                onLine = Math.Max(onLine, Math.Abs(field.SignedDistanceKm(p.Lat, p.Lon)));
+            }
+        }
+        Check("the cut of a lake is the drawn line", onLine < 0.01,
+              String.Format("worst {0:F4} km off the line", onLine));
+
+        // A tile in the middle of the lake is wholly cut out; a tile on dry land is untouched.
+        double lo, hi;
+        double half = 0.3 / Coastline.KmPerDegLat;
+        field.RangeOver(-72.0 - half, -72.0 + half, -39.07 - half, -39.07 + half, out lo, out hi);
+        Check("a tile in the middle of a lake reads as wholly inside it", hi <= field.MarginKm,
+              String.Format("{0:F3} .. {1:F3} km", lo, hi));
+        double dryLon = -72.0 - 6.5 / Coastline.KmPerDegLon(-39.07);
+        field.RangeOver(dryLon - half, dryLon + half, -39.07 - half, -39.07 + half, out lo, out hi);
+        Check("a tile on dry land reads as wholly outside every lake", lo > field.MarginKm,
+              String.Format("{0:F3} .. {1:F3} km", lo, hi));
+
+        // ---- which squares: a lake counts only near the square, and needs no coast ----
+        string why;
+        var part = lakes.ForSquare(-72.2, -71.9, -39.2, -38.9, out why);
+        Check("a square a lake reaches gets that lake, still a lakes file at a margin of 0",
+              part != null && part.IsLakes && part.MarginKm == 0.0 && part.Islands.Count >= 1, why);
+        part = lakes.ForSquare(-70.0, -69.7, -39.2, -38.9, out why);
+        Check("a square no lake comes near gets no lake", part == null, why);
     }
 }

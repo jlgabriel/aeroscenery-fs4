@@ -29,6 +29,9 @@ features that path does not use, and replaces the conversion step with a convert
   converter stops the photoscenery a set distance out to sea (3 NM by default), along the shape of
   the coast. Aerofly's own sea shows beyond it. Since 2.1, you can also draw islands, and the cut
   goes all round each one.
+- **Lakes cut out.** Where the imagery of a lake is bad, with blocks of colour or haze, draw the
+  lake on the map. The photoscenery is cut out on the line you draw, and Aerofly's own lake shows
+  inside it.
 - **No black sea near the coast (Bing).** Bing's sharpest imagery often stops a short way out to
   sea. Where a tile is missing at the zoom you chose, the app fills it from a lower zoom of Bing,
   enlarged, so the sea inside the cut has imagery all the way out. With a cut, only the tiles
@@ -100,6 +103,7 @@ general discussion, use the
 | Working files | `<Working Folder>\<grid square>\` |
 | The drawn coastline and islands | `<Working Folder>\coastline.txt` |
 | Backups of the coastline | `<Working Folder>\coastline-backups\` |
+| The drawn lakes | `<Working Folder>\lakes.txt`, backups in `<Working Folder>\lakes-backups\` |
 | Installed scenery | `Documents\Aerofly FS 4\addons\scenery\<package>\images\<grid square>\` |
 | Log | `Documents\AeroScenery\aeroscenery.txt` |
 | Settings | `Documents\AeroScenery\settings2.xml` |

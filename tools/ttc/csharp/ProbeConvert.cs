@@ -24,6 +24,7 @@ internal static class ProbeConvert
         // The named options are pulled out first, so they can be given without the optional
         // positional ones in front of them. The positional four came first and are left alone.
         string waterFix = null;
+        string lakesFile = null;
         bool mercator = false;
         var list = new System.Collections.Generic.List<string>();
         for (int i = 0; i < rawArgs.Length; i++)
@@ -31,6 +32,10 @@ internal static class ProbeConvert
             if (rawArgs[i] == "--water" && i + 1 < rawArgs.Length)
             {
                 waterFix = rawArgs[++i];
+            }
+            else if (rawArgs[i] == "--lakes" && i + 1 < rawArgs.Length)
+            {
+                lakesFile = rawArgs[++i];
             }
             else if (rawArgs[i] == "--mercator")
             {
@@ -46,7 +51,7 @@ internal static class ProbeConvert
         if (args.Length < 2)
         {
             Console.Error.WriteLine(
-                "usage: ProbeConvert <tmc> <outdir> [threads] [blackIsMissing] [coastline] [marginNm] [--water <awfx>] [--mercator]");
+                "usage: ProbeConvert <tmc> <outdir> [threads] [blackIsMissing] [coastline] [marginNm] [--water <awfx>] [--lakes <file>] [--mercator]");
             return 2;
         }
 
@@ -84,6 +89,17 @@ internal static class ProbeConvert
             Console.WriteLine("  coast       {0} points, land to the {1}, {2} island(s), cut at {3:0.##} NM",
                 coast.Points.Count, coast.Land.ToString().ToLowerInvariant(),
                 coast.Islands.Count, coast.MarginKm / 1.852);
+        }
+        if (lakesFile != null)
+        {
+            var lakes = Coastline.LoadLakes(lakesFile);
+            if (lakes.IsEmpty)
+            {
+                Console.Error.WriteLine("error: " + lakesFile + " has no lake in it");
+                return 1;
+            }
+            converter.Lakes = lakes;
+            Console.WriteLine("  lakes       {0} lake(s), cut out on the drawn line", lakes.Islands.Count);
         }
         if (waterFix != null)
         {

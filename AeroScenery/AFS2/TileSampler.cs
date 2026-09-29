@@ -68,10 +68,17 @@ namespace AeroScenery.AFS2
         ///
         /// Off by default, for both of the reasons blackIsMissing and coast are.
         /// </param>
+        /// <param name="lakes">
+        /// Where photoscenery is cut out on a lake, or null to cut out nothing. The field of a file
+        /// of lakes is negative inside a lake and has a margin of 0, so its IsCovered means "inside
+        /// a lake". A pixel inside a lake is left uncovered, and the mask gives it back to Aerofly.
+        ///
+        /// Off by default, for both of the reasons coast is.
+        /// </param>
         public static bool Sample(List<SourceImage> sources, int level, int tx, int ty,
             byte[] rgb, bool[] covered, int size, bool positionBands = true,
             bool blackIsMissing = false, CoastlineField coast = null,
-            WaterFixField water = null)
+            WaterFixField water = null, CoastlineField lakes = null)
         {
             Array.Clear(rgb, 0, size * size * 3);
             Array.Clear(covered, 0, size * size);
@@ -123,6 +130,46 @@ namespace AeroScenery.AFS2
                         for (int i = 0; i < size; i++)
                         {
                             allowed[allowedRow + i] = coast.IsCovered(lats[j], lons[i]);
+                        }
+                    }
+                }
+            }
+
+            // The lakes, decided the same way, after the coast. A tile wholly inside a lake is no
+            // tile, and a tile that no lake reaches runs as before. Only the tiles on a shore pay
+            // for the per-pixel test.
+            if (lakes != null)
+            {
+                double nearest, furthest;
+                lakes.RangeOver(Math.Min(lonW, lonE), Math.Max(lonW, lonE),
+                                Math.Min(latS, latN), Math.Max(latS, latN),
+                                out nearest, out furthest);
+
+                if (furthest <= lakes.MarginKm)
+                {
+                    return false;
+                }
+
+                if (nearest <= lakes.MarginKm)
+                {
+                    if (allowed == null)
+                    {
+                        allowed = new bool[size * size];
+                        for (int k = 0; k < allowed.Length; k++)
+                        {
+                            allowed[k] = true;
+                        }
+                    }
+
+                    for (int j = 0; j < size; j++)
+                    {
+                        int allowedRow = j * size;
+                        for (int i = 0; i < size; i++)
+                        {
+                            if (allowed[allowedRow + i] && lakes.IsCovered(lats[j], lons[i]))
+                            {
+                                allowed[allowedRow + i] = false;
+                            }
                         }
                     }
                 }

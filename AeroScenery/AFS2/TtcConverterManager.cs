@@ -22,8 +22,9 @@ namespace AeroScenery.AFS2
         private readonly ILog log = LogManager.GetLogger("AeroScenery");
 
         /// <param name="coast">Where to stop the photoscenery at the sea, or null for no cut.</param>
+        /// <param name="lakes">The lakes to cut the photoscenery out of, or null for none.</param>
         public async Task<TtcConversionResult> ConvertAllAsync(string stitchedTilesDirectory,
-            string ttcDirectory, MainForm mainForm, Coastline coast = null)
+            string ttcDirectory, MainForm mainForm, Coastline coast = null, Coastline lakes = null)
         {
             var total = new TtcConversionResult();
 
@@ -83,7 +84,7 @@ namespace AeroScenery.AFS2
 
                     result = await Task.Run(() =>
                     {
-                        var converter = new TtcConverter { MaxThreads = threads, Coast = coast, MercatorRows = true };
+                        var converter = new TtcConverter { MaxThreads = threads, Coast = coast, Lakes = lakes, MercatorRows = true };
                         var progress = new Progress<TtcConversionProgress>(p =>
                             mainForm.UpdateChildTaskProgress(String.Format(
                                 "Converting level {0} - {1} of {2} tiles",
@@ -127,11 +128,11 @@ namespace AeroScenery.AFS2
                         result.SourceRestarts, Path.GetFileName(tmcFilename));
                 }
 
-                if (result.FilesWritten.Count == 0 && coast != null)
+                if (result.FilesWritten.Count == 0 && (coast != null || lakes != null))
                 {
                     // An answer, not a failure: the whole square lies past the cut, so there is
                     // no photoscenery in it and the right output is nothing at all.
-                    log.WarnFormat("{0} produced no tiles - the whole grid square lies out at sea, past the coastline cut",
+                    log.WarnFormat("{0} produced no tiles - the whole grid square lies out at sea past the coastline cut, or inside a lake",
                         Path.GetFileName(tmcFilename));
                 }
                 else if (result.FilesWritten.Count == 0)

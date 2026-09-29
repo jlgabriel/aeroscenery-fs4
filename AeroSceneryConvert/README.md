@@ -9,14 +9,16 @@ prints what it does, and it exits with a real exit code.
 
 ```
 usage: AeroSceneryConvert <file.tmc> [--out <dir>] [--threads <n>]
-                          [--coast <file>] [--margin-nm <n>] [--linear-rows]
-                          [--quiet]
+                          [--coast <file>] [--margin-nm <n>] [--lakes <file>]
+                          [--linear-rows] [--quiet]
 
   --out <dir>      write tiles here instead of the .tmc's folder_destination_ttc
   --threads <n>    BC1 encoder threads; 0 means all cores. Default is half of them.
   --coast <file>   stop the photoscenery at this hand-drawn coastline
                    (the coastline.txt that Draw Coast on the Map tab saves)
   --margin-nm <n>  how far out to sea to cut, overriding the file. Default 3.
+  --lakes <file>   cut the photoscenery out inside these lakes, on the drawn line
+                   (the lakes.txt that Lake on the Map tab saves)
   --linear-rows    read the image rows as linear in latitude, as version 2.0 and
                    GeoConvert did
   --quiet          no progress, only errors
@@ -50,6 +52,10 @@ Two rules for `--coast`, both learnt on real squares:
 
 A square that lies wholly past the cut writes nothing. With `--coast` that is a result, not an
 error: there is no photoscenery in that square.
+
+`--lakes` has no such rules. A lake is a closed ring and the cut is its line, so there is nothing to
+guess. The file can hold lakes anywhere: only the lakes near the square count. Empty the output
+folder first here too.
 
 ## What it does not do
 

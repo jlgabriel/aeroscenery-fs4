@@ -32,6 +32,8 @@ param(
     [Parameter(Mandatory = $true)][string]$Working,
     # The hand-drawn waterline. Left out, a coastal square's sea comes back.
     [string]$Coastline = '',
+    # The drawn lakes (lakes.txt). Given to every square: only the lakes near a square count.
+    [string]$Lakes = '',
     [string]$Source = 'b',
     [int]$Zoom = 17,
     # Squares at once. About 7 GB of working set each.
@@ -57,6 +59,7 @@ if (Test-Path $Plan) {
 }
 if (-not $names) { throw "no squares in: $Plan" }
 if ($Coastline -and -not (Test-Path $Coastline)) { throw "coastline not found: $Coastline" }
+if ($Lakes -and -not (Test-Path $Lakes)) { throw "lakes not found: $Lakes" }
 
 # The Aerofly grid, so a square's own edges can be worked out from its name. Not Mercator -
 # see AeroScenery\AFS2\AFS2World.cs, which is where this comes from. Level 9 only.
@@ -176,6 +179,7 @@ foreach ($name in $names) {
            '-Tmc', $tmc, '-OutDir', $out, '-Threads', $Threads, '-WaterFix', $awfx, '-Bin', $bin,
            '-Mercator')   # read the rows as the app does, so a rebuild here matches one in the app
     if ($cut) { $a += @('-Coastline', $cut) }
+    if ($Lakes) { $a += @('-Lakes', $Lakes) }
     $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $a -PassThru `
                        -RedirectStandardOutput $log -RedirectStandardError "$log.err" `
                        -WindowStyle Hidden

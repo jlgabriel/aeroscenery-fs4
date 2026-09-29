@@ -95,6 +95,13 @@ namespace AeroScenery.Common
         public bool? CutAtCoastline { get; set; }
 
         /// <summary>
+        /// Whether the converter cuts the photoscenery out of the lakes drawn with Lake on the Map
+        /// tab, so Aerofly draws its own imagery there. It does nothing until a lake exists. It
+        /// does not depend on CutAtCoastline. See AeroSceneryManager.LoadLakesForRun.
+        /// </summary>
+        public bool? CutOutLakes { get; set; }
+
+        /// <summary>
         /// Whether the download fills each Bing tile that has no imagery from a lower zoom. With a
         /// coastline cut, only the tiles inside the cut. Off, such tiles stay black, as in 2.0.1.
         /// See DownloadManager.FillFromLowerZoom.

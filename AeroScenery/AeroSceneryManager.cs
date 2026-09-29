@@ -533,6 +533,59 @@ namespace AeroScenery
         }
 
         /// <summary>
+        /// The lakes of the package, beside the coastline and apart from it. Lake on the Map tab
+        /// writes it. A separate file, so a version that knows nothing of lakes cannot read one as
+        /// coast or island.
+        /// </summary>
+        public string LakesPath
+        {
+            get
+            {
+                return Path.Combine(this.settings.WorkingDirectory, "lakes.txt");
+            }
+        }
+
+        /// <summary>
+        /// The lakes to cut out this run, or null for none: the setting is off, or no lake has
+        /// been drawn. Loaded once, like the coastline. A lake is cut in every square it reaches,
+        /// with no coastline and no stretch rule: the ring says exactly what to cut.
+        /// </summary>
+        private Coastline LoadLakesForRun()
+        {
+            if (!(this.settings.CutOutLakes ?? true))
+            {
+                return null;
+            }
+
+            var path = this.LakesPath;
+
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            Coastline lakes;
+
+            try
+            {
+                lakes = Coastline.LoadLakes(path);
+            }
+            catch (Exception ex)
+            {
+                log.Error(String.Format("Could not read the lakes {0}, so no lake is cut out", path), ex);
+                return null;
+            }
+
+            if (lakes.IsEmpty)
+            {
+                return null;
+            }
+
+            log.InfoFormat("Cutting out {0} lake(s) in {1}", lakes.Islands.Count, path);
+            return lakes;
+        }
+
+        /// <summary>
         /// The coastline to cut this run at, or null for no cut: the setting is off, no line has
         /// been drawn, or the file has no line in it. Loaded once, because every square of a run
         /// must be cut at the same line.
@@ -678,6 +731,7 @@ namespace AeroScenery
             log.Info("Starting tmc to ttc conversion");
 
             var coast = this.LoadCoastlineForRun();
+            var lakes = this.LoadLakesForRun();
 
             int i = 0;
 
@@ -707,7 +761,7 @@ namespace AeroScenery
                             }
 
                             await this.ttcConverterManager.ConvertAllAsync(stitchedTilesDirectory, ttcDirectory, this.mainForm,
-                                this.CoastFor(afs2GridSquare, coast));
+                                this.CoastFor(afs2GridSquare, coast), lakes);
                         }
                         else
                         {

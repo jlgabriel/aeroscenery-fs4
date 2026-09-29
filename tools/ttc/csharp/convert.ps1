@@ -26,6 +26,9 @@ param(
     # Take the haze and the cloud out of the water, using a field measured by
     # tools/ttc/water_fix.py. Changes output as well, and for the same reason as the two above.
     [string]$WaterFix = '',
+    # Cut the photoscenery out inside these lakes - the lakes.txt the Map tab's Lake button saves.
+    # Changes output as well. Safe for any square: only the lakes near it count.
+    [string]$Lakes = '',
     # Read the stitched rows as Web Mercator rows, as the app does. Changes output. The reference
     # has the same option: give --mercator to convert_tmc.py too, and the manifests must match.
     [switch]$Mercator,
@@ -80,6 +83,11 @@ if ($WaterFix) {
     if (-not (Test-Path $WaterFix)) { throw "water fix field not found: $WaterFix" }
     $argv += '--water'
     $argv += (Resolve-Path $WaterFix).Path
+}
+if ($Lakes) {
+    if (-not (Test-Path $Lakes)) { throw "lakes not found: $Lakes" }
+    $argv += '--lakes'
+    $argv += (Resolve-Path $Lakes).Path
 }
 if ($Mercator) {
     $argv += '--mercator'

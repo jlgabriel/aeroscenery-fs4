@@ -179,6 +179,7 @@ namespace AeroScenery.UI
                 : 0;      // "Automatic", or anything unparseable
 
             settings.CutAtCoastline = this.cutAtCoastlineCheckBox.Checked;
+            settings.CutOutLakes = this.cutOutLakesCheckBox.Checked;
             settings.FillMissingTiles = this.fillMissingTilesCheckBox.Checked;
 
             settings.LinzApiKey = this.linzKeyTextBox.Text.Trim();
@@ -284,6 +285,7 @@ namespace AeroScenery.UI
             }
 
             this.cutAtCoastlineCheckBox.Checked = settings.CutAtCoastline.Value;
+            this.cutOutLakesCheckBox.Checked = settings.CutOutLakes ?? true;
             this.fillMissingTilesCheckBox.Checked = settings.FillMissingTiles ?? true;
 
             this.linzKeyTextBox.Text = settings.LinzApiKey;

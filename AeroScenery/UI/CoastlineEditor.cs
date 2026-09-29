@@ -65,6 +65,51 @@ namespace AeroScenery.UI
             get { return ToleranceKm * 1000.0 / MinPixelStep; }
         }
 
+        /// <summary>
+        /// The coarsest ground resolution worth drawing a lake at, in metres per pixel. A lake is
+        /// cut ON its line, with no margin to hide an error in.
+        /// </summary>
+        private const double LakeCoarsestMetresPerPixel = 10.0;
+
+        /// <summary>
+        /// Thinning tolerance for a lake, in screen pixels at the zoom the stroke ends at.
+        ///
+        /// A fixed tolerance in metres cannot suit a lake. 40 m straightened a shore traced at
+        /// 1-2 m/px into long chords, because 40 m was tens of pixels on the screen: the line on
+        /// the map was not the line the user drew. One pixel keeps what the user saw.
+        /// </summary>
+        private const double LakeTolerancePixels = 1.0;
+
+        /// <summary>The smallest lake tolerance, in km, whatever the zoom: 1 m.</summary>
+        private const double LakeToleranceFloorKm = 0.001;
+
+        /// <summary>
+        /// The coarsest ground resolution worth drawing at now: finer while a lake is drawn. See
+        /// CoarsestMetresPerPixel.
+        /// </summary>
+        public double CoarsestMetresPerPixelNow
+        {
+            get { return DrawingLake ? LakeCoarsestMetresPerPixel : CoarsestMetresPerPixel; }
+        }
+
+        /// <summary>
+        /// The lake tolerance for the current zoom, in km. See LakeTolerancePixels. If the map
+        /// cannot say, it falls back on the tolerance at the coarsest zoom a lake should be drawn at.
+        /// </summary>
+        private double LakeToleranceKm()
+        {
+            double metresPerPixel;
+            try
+            {
+                metresPerPixel = map.MapProvider.Projection.GetGroundResolution((int)map.Zoom, map.Position.Lat);
+            }
+            catch (Exception)
+            {
+                metresPerPixel = LakeCoarsestMetresPerPixel;
+            }
+            return Math.Max(metresPerPixel * LakeTolerancePixels / 1000.0, LakeToleranceFloorKm);
+        }
+
         private readonly GMapControl map;
         private readonly GMapOverlay overlay = new GMapOverlay("coastline");
         private readonly Timer edgeTimer = new Timer();
@@ -79,6 +124,7 @@ namespace AeroScenery.UI
         {
             this.map = map;
             Line = new Coastline();
+            Lakes = Coastline.NewLakes();
 
             map.Overlays.Add(overlay);
             map.MouseDown += OnMouseDown;
@@ -90,6 +136,18 @@ namespace AeroScenery.UI
         }
 
         public Coastline Line { get; private set; }
+
+        /// <summary>
+        /// The lakes: rings drawn with Lake down, kept apart from the coast and saved to their own
+        /// file. The photoscenery is cut out inside each one, on the drawn line.
+        /// </summary>
+        public Coastline Lakes { get; private set; }
+
+        /// <summary>Where the strokes go now: the lakes while Lake is down, else the coast.</summary>
+        private Coastline Target
+        {
+            get { return DrawingLake ? Lakes : Line; }
+        }
 
         /// <summary>Raised when the line changes, so the form can update its labels.</summary>
         public event EventHandler Changed;
@@ -183,11 +241,41 @@ namespace AeroScenery.UI
                 StopDrawing();
                 if (value)
                 {
+                    // One ring at a time: an island closes the lake being drawn.
+                    Lakes.EndIsland();
                     Line.StartIsland();
                 }
                 else
                 {
                     Line.EndIsland();
+                }
+                Redraw();
+            }
+        }
+
+        /// <summary>
+        /// True while the strokes drawn make a lake. Setting it true starts a new lake, or carries
+        /// on a lake that is still open; setting it false closes the lake. Works as DrawingIsland
+        /// does, on the lakes.
+        /// </summary>
+        public bool DrawingLake
+        {
+            get { return Lakes.DrawingIsland != Coastline.CoastStroke; }
+            set
+            {
+                if (value == DrawingLake)
+                {
+                    return;
+                }
+                StopDrawing();
+                if (value)
+                {
+                    Line.EndIsland();
+                    Lakes.StartIsland();
+                }
+                else
+                {
+                    Lakes.EndIsland();
                 }
                 Redraw();
             }
@@ -205,7 +293,7 @@ namespace AeroScenery.UI
             }
 
             drawing = true;
-            Line.BeginStroke();
+            Target.BeginStroke();
             lastPixel = new System.Drawing.Point(e.X, e.Y);
             Take(e.X, e.Y);
             edgeTimer.Start();
@@ -252,14 +340,14 @@ namespace AeroScenery.UI
             if (drawing)
             {
                 drawing = false;
-                Line.EndStroke(ToleranceKm);
+                Target.EndStroke(DrawingLake ? LakeToleranceKm() : ToleranceKm);
             }
         }
 
         private void Take(int x, int y)
         {
             PointLatLng p = map.FromLocalToLatLng(x, y);
-            Line.AddPoint(p.Lat, p.Lng);
+            Target.AddPoint(p.Lat, p.Lng);
         }
 
         /// <summary>
@@ -315,10 +403,14 @@ namespace AeroScenery.UI
             }
         }
 
+        /// <summary>
+        /// Takes back the last stroke of the line being drawn: of the lakes while Lake is down,
+        /// else of the coast and the islands.
+        /// </summary>
         public bool Undo()
         {
             StopDrawing();
-            bool undone = Line.UndoStroke();
+            bool undone = Target.UndoStroke();
             if (undone)
             {
                 Redraw();
@@ -370,6 +462,14 @@ namespace AeroScenery.UI
                 closed.Add(ring[0]);
                 AddRoute(closed, "island", Color.Yellow, 2);
             }
+
+            // A lake in its own colour. Its line is also its cut, so there is no red line for it.
+            foreach (var ring in Lakes.Islands)
+            {
+                var closed = new List<GeoPoint>(ring);
+                closed.Add(ring[0]);
+                AddRoute(closed, "lake", Color.DeepSkyBlue, 2);
+            }
         }
 
         /// <summary>
@@ -383,7 +483,7 @@ namespace AeroScenery.UI
         public void Redraw()
         {
             overlay.Routes.Clear();
-            overlay.IsVisibile = !Line.IsEmpty;
+            overlay.IsVisibile = !Line.IsEmpty || !Lakes.IsEmpty;
 
             if (!Line.IsEmpty)
             {
@@ -391,8 +491,8 @@ namespace AeroScenery.UI
                 {
                     AddRoute(cut, "cut", Color.OrangeRed, 2);
                 }
-                AddLines();
             }
+            AddLines();
             map.Refresh();
         }
 
@@ -429,6 +529,37 @@ namespace AeroScenery.UI
         public void Load(string path)
         {
             Line = Coastline.Load(path);
+            Redraw();
+            OnChanged();
+        }
+
+        /// <summary>
+        /// Forgets the coast, the islands and the lakes, as for a working folder where none are
+        /// drawn. Saves nothing and raises no Changed: the lines belong to the folder they came
+        /// from, and a save now would write them into the next one.
+        /// </summary>
+        public void Reset()
+        {
+            StopDrawing();
+            Line = new Coastline();
+            Lakes = Coastline.NewLakes();
+            Redraw();
+        }
+
+        public void SaveLakes(string path)
+        {
+            StopDrawing();
+            Lakes.Save(path);
+        }
+
+        public void LoadLakes(string path)
+        {
+            Lakes = Coastline.LoadLakes(path);
+            // One ring at a time. An open island stays open: Island again carries it on.
+            if (DrawingLake)
+            {
+                Line.EndIsland();
+            }
             Redraw();
             OnChanged();
         }

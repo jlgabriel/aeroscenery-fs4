@@ -63,6 +63,7 @@ namespace AeroScenery
             this.coastlineDrawToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.coastlineUndoToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.coastlineIslandToolStripButton = new System.Windows.Forms.ToolStripButton();
+            this.coastlineLakeToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.coastlineSaveToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.coastlineMarginLabel = new System.Windows.Forms.ToolStripLabel();
             this.coastlineMarginToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
@@ -469,6 +470,7 @@ namespace AeroScenery
             this.coastlineToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.coastlineDrawToolStripButton,
             this.coastlineIslandToolStripButton,
+            this.coastlineLakeToolStripButton,
             this.coastlineUndoToolStripButton,
             this.coastlineSeparator,
             this.coastlineMarginLabel,
@@ -497,6 +499,13 @@ namespace AeroScenery
             this.coastlineIslandToolStripButton.Text = "Island";
             this.coastlineIslandToolStripButton.ToolTipText = "Down: the strokes you draw make one island, a closed ring with the land inside. Click again to close the island. Down again starts the next island.";
             this.coastlineIslandToolStripButton.Click += new System.EventHandler(this.coastlineIslandToolStripButton_Click);
+            this.coastlineLakeToolStripButton.CheckOnClick = true;
+            this.coastlineLakeToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.coastlineLakeToolStripButton.Name = "coastlineLakeToolStripButton";
+            this.coastlineLakeToolStripButton.Size = new System.Drawing.Size(40, 22);
+            this.coastlineLakeToolStripButton.Text = "Lake";
+            this.coastlineLakeToolStripButton.ToolTipText = "Down: the strokes you draw make one lake, a closed ring. The photoscenery is cut out on the line, and Aerofly shows its own imagery inside. Click again to close the lake. Down again starts the next lake.";
+            this.coastlineLakeToolStripButton.Click += new System.EventHandler(this.coastlineLakeToolStripButton_Click);
             this.coastlineUndoToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.coastlineUndoToolStripButton.Name = "coastlineUndoToolStripButton";
             this.coastlineUndoToolStripButton.Size = new System.Drawing.Size(45, 22);
@@ -1273,6 +1282,7 @@ namespace AeroScenery
         private System.Windows.Forms.ToolStripButton coastlineDrawToolStripButton;
         private System.Windows.Forms.ToolStripButton coastlineUndoToolStripButton;
         private System.Windows.Forms.ToolStripButton coastlineIslandToolStripButton;
+        private System.Windows.Forms.ToolStripButton coastlineLakeToolStripButton;
         private System.Windows.Forms.ToolStripButton coastlineSaveToolStripButton;
         private System.Windows.Forms.ToolStripLabel coastlineMarginLabel;
         private System.Windows.Forms.ToolStripTextBox coastlineMarginToolStripTextBox;

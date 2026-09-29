@@ -64,6 +64,8 @@
             this.cutAtCoastlineLabel = new System.Windows.Forms.Label();
             this.fillMissingTilesLabel = new System.Windows.Forms.Label();
             this.fillMissingTilesCheckBox = new System.Windows.Forms.CheckBox();
+            this.cutOutLakesLabel = new System.Windows.Forms.Label();
+            this.cutOutLakesCheckBox = new System.Windows.Forms.CheckBox();
             this.cutAtCoastlineCheckBox = new System.Windows.Forms.CheckBox();
             this.label11 = new System.Windows.Forms.Label();
             this.shrinkTMCGridSquaresTextBox = new System.Windows.Forms.TextBox();
@@ -449,6 +451,8 @@
             this.groupBox4.Controls.Add(this.cutAtCoastlineCheckBox);
             this.groupBox4.Controls.Add(this.fillMissingTilesLabel);
             this.groupBox4.Controls.Add(this.fillMissingTilesCheckBox);
+            this.groupBox4.Controls.Add(this.cutOutLakesLabel);
+            this.groupBox4.Controls.Add(this.cutOutLakesCheckBox);
             this.groupBox4.Controls.Add(this.label11);
             this.groupBox4.Controls.Add(this.shrinkTMCGridSquaresTextBox);
             this.groupBox4.Controls.Add(this.label15);
@@ -540,6 +544,27 @@
             this.fillMissingTilesCheckBox.TabIndex = 24;
             this.fillMissingTilesCheckBox.Text = "(Bing: from a lower zoom, where it has no imagery)";
             this.fillMissingTilesCheckBox.UseVisualStyleBackColor = true;
+            //
+            // cutOutLakesLabel
+            //
+            this.cutOutLakesLabel.AutoSize = true;
+            this.cutOutLakesLabel.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cutOutLakesLabel.Location = new System.Drawing.Point(20, 212);
+            this.cutOutLakesLabel.Name = "cutOutLakesLabel";
+            this.cutOutLakesLabel.Size = new System.Drawing.Size(128, 17);
+            this.cutOutLakesLabel.TabIndex = 25;
+            this.cutOutLakesLabel.Text = "Cut out the lakes";
+            //
+            // cutOutLakesCheckBox
+            //
+            this.cutOutLakesCheckBox.AutoSize = true;
+            this.cutOutLakesCheckBox.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cutOutLakesCheckBox.Location = new System.Drawing.Point(216, 211);
+            this.cutOutLakesCheckBox.Name = "cutOutLakesCheckBox";
+            this.cutOutLakesCheckBox.Size = new System.Drawing.Size(390, 21);
+            this.cutOutLakesCheckBox.TabIndex = 26;
+            this.cutOutLakesCheckBox.Text = "(Uses the lakes drawn with Lake on the Map tab)";
+            this.cutOutLakesCheckBox.UseVisualStyleBackColor = true;
             // 
             // label11
             // 
@@ -1209,6 +1234,8 @@
         private System.Windows.Forms.CheckBox cutAtCoastlineCheckBox;
         private System.Windows.Forms.Label fillMissingTilesLabel;
         private System.Windows.Forms.CheckBox fillMissingTilesCheckBox;
+        private System.Windows.Forms.Label cutOutLakesLabel;
+        private System.Windows.Forms.CheckBox cutOutLakesCheckBox;
         private System.Windows.Forms.GroupBox groupBox6;
         private System.Windows.Forms.LinkLabel linkLabel1;
         private System.Windows.Forms.TextBox linzKeyTextBox;
